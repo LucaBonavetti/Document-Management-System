@@ -8,7 +8,7 @@ import java.util.Optional;
 
 @SpringBootTest
 class DocumentRepositoryTest {
-    private DocumentRepository repository;
+    private final DocumentRepository repository;
 
     DocumentRepositoryTest(DocumentRepository repository) {
         this.repository = repository;

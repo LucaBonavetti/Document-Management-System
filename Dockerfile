@@ -8,6 +8,6 @@ RUN mvn -q -DskipTests package
 #run app
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /src/target/paperless-rest-0.0.1-SNAPSHOT.jar app jar
+COPY --from=build /src/target/*.jar /app/app.jar
 EXPOSE 8081
 ENTRYPOINT ["java", "-jar","/app/app.jar"]

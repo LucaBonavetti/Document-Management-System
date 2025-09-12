@@ -30,49 +30,48 @@ class DocumentControllerTest {
     @Autowired DocumentRepository repository;
 
     @Test
-    void fullCrudFlow() throws Exception {
+    void crudFlow() throws Exception {
 
         // --- Create
-        String createJson = """
-            {"title":"Doc A","contentText":"alpha"}
+        String create = """
+            {"title":"title","contentText":"contentText"}
         """;
-        String createResp = mvc.perform(post("/api/documents")
+        String resp = mvc.perform(post("/api/documents")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(createJson))
+                        .content(create))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
                 .andReturn().getResponse().getContentAsString();
 
-        JsonNode created = mapper.readTree(createResp);
+        JsonNode created = mapper.readTree(resp);
         String id = created.get("id").asText();
         assertThat(id).isNotBlank();
 
         // --- Get by id
         mvc.perform(get("/api/documents/{id}", id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("Doc A"))
-                .andExpect(jsonPath("$.contentText").value("alpha"));
+                .andExpect(jsonPath("$.title").value("title"))
+                .andExpect(jsonPath("$.contentText").value("contentText"));
 
         // --- Update
-        String updateJson = """
-            {"title":"Doc A (updated)","contentText":"beta"}
+        String update = """
+            {"title":"title (updated)","contentText":"contentText"}
         """;
         mvc.perform(put("/api/documents/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(updateJson))
+                        .content(update))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("Doc A (updated)"))
-                .andExpect(jsonPath("$.contentText").value("beta"));
+                .andExpect(jsonPath("$.title").value("title (updated)"))
+                .andExpect(jsonPath("$.contentText").value("contentText"));
 
         // --- Delete
         mvc.perform(delete("/api/documents/{id}", id))
                 .andExpect(status().isNoContent());
 
-        // Verify it is gone
+        // Verify gone
         mvc.perform(get("/api/documents/{id}", id))
                 .andExpect(status().isNotFound());
 
-        // Repo sanity
         assertThat(repository.findById(UUID.fromString(id))).isEmpty();
     }
 

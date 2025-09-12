@@ -11,7 +11,7 @@ import java.util.UUID;
 @Service
 public class DocumentService {
 
-    private DocumentRepository repository;
+    private final DocumentRepository repository;
 
     public DocumentService(DocumentRepository repository) {
         this.repository = repository;

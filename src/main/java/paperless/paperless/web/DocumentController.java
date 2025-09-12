@@ -14,7 +14,7 @@ import java.util.UUID;
 @RequestMapping("/api/documents")
 public class DocumentController {
 
-    private DocumentService service;
+    private final DocumentService service;
 
     public DocumentController(DocumentService service) {
         this.service = service;
@@ -35,10 +35,11 @@ public class DocumentController {
         String title = body.get("title");
         String contentText = body.get("contentText");
         Document created = service.create(title, contentText);
-        return ResponseEntity.created(URI.create("/api/documents/" + created.getId())).body(created);
+        return ResponseEntity.created(URI.create("/api/documents/" + created.getId()))
+                .body(created);
     }
 
-    @PutMapping
+    @PutMapping("/{id}")
     public Document update(@PathVariable UUID id, @RequestBody Map<String, String> body) {
         String title = body.get("title");
         String contentText = body.get("contentText");
