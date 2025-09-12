@@ -11,7 +11,7 @@ services:
 
   app:
     build: .
-    container_name: paperless-restdo
+    container_name: paperless-rest
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/paperless
       SPRING_DATASOURCE_USERNAME: paperless
