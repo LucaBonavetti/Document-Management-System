@@ -9,13 +9,16 @@ public class Document {
 
     @Id
     @GeneratedValue
+    @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(name= "content_text")
+    @Column(name = "content_text")
     private String contentText;
+
+    public Document() {}
 
 
     public Document(String title, String contentText) {

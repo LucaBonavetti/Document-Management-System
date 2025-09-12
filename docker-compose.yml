@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   db:
     image: postgres:16
@@ -8,15 +10,22 @@ services:
       POSTGRES_PASSWORD: paperless
     ports:
       - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: document-management-system-app:latest
     container_name: paperless-rest
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/paperless
       SPRING_DATASOURCE_USERNAME: paperless
       SPRING_DATASOURCE_PASSWORD: paperless
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SERVER_PORT: 8081
     ports:
       - "8081:8081"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
