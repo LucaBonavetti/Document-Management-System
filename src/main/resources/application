@@ -1,0 +1,14 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: paperless-rest
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/paperless}
+    username: ${SPRING_DATASOURCE_USERNAME:paperless}
+    password: ${SPRING_DATASOURCE_PASSWORD:paperless}
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+      open-in-view: false
