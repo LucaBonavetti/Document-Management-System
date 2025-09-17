@@ -19,4 +19,4 @@ spring:
 
 springdoc:
   swagger-ui:
-    ui: /openapi.yaml
+    url: /openapi.yaml

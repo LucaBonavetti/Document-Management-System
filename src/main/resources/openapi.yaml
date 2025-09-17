@@ -2,34 +2,10 @@ openapi: 3.0.3
 info:
   title: Paperless Document API
   version: 1.0.0
-  description: REST API for uploading and managing documents.
+  description: REST API for managing documents
 servers:
   - url: http://localhost:8081
 paths:
-  /api/documents/upload:
-    post:
-      summary: Upload a document (multipart)
-      operationId: uploadDocument
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file]
-              properties:
-                file:
-                  type: string
-                  format: binary
-                title:
-                  type: string
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Document'
   /api/documents/{id}/content:
     get:
       summary: Download document content
@@ -73,8 +49,3 @@ components:
         id: { type: string, format: uuid }
         title: { type: string }
         contentText: { type: string, nullable: true }
-        filename: { type: string, nullable: true }
-        contentType: { type: string, nullable: true }
-        size: { type: integer, format: int64, nullable: true }
-        checksum: { type: string, nullable: true, description: SHA-256 hex }
-        uploadedAt: { type: string, format: date-time, nullable: true }
