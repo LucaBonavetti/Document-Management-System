@@ -1,0 +1,80 @@
+openapi: 3.0.3
+info:
+  title: Paperless Document API
+  version: 1.0.0
+  description: REST API for uploading and managing documents.
+servers:
+  - url: http://localhost:8081
+paths:
+  /api/documents/upload:
+    post:
+      summary: Upload a document (multipart)
+      operationId: uploadDocument
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+  /api/documents/{id}/content:
+    get:
+      summary: Download document content
+      operationId: downloadDocument
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Not Found
+  /api/documents:
+    get:
+      summary: List all documents
+      operationId: listDocuments
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Document'
+components:
+  parameters:
+    IdPath:
+      in: path
+      name: id
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    Document:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        contentText: { type: string, nullable: true }
+        filename: { type: string, nullable: true }
+        contentType: { type: string, nullable: true }
+        size: { type: integer, format: int64, nullable: true }
+        checksum: { type: string, nullable: true, description: SHA-256 hex }
+        uploadedAt: { type: string, format: date-time, nullable: true }
