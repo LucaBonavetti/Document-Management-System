@@ -1,0 +1,70 @@
+openapi: 3.0.3
+info:
+  title: Document Management API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8081
+paths:
+  /api/documents:
+    post:
+      operationId: uploadDocument
+      tags: [Documents]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location:
+              description: URL of the created document resource
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          description: Bad Request (e.g., empty file)
+        '500':
+          description: Unexpected error
+  /api/documents/{id}:
+    get:
+      summary: Get uploaded document metadata
+      operationId: getDocument
+      tags: [Documents]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '404':
+          description: Not Found
+components:
+  schemas:
+    Document:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        filename: { type: string }
+        contentType: { type: string }
+        size: { type: integer, format: int64 }
+        uploadedAt: { type: string, format: date-time }
+      required: [id, filename, size, uploadedAt]

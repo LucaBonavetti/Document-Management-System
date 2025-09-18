@@ -1,13 +1,16 @@
-#build app
-FROM maven:3.9.6-eclipse-temurin-21 AS build
-WORKDIR /src
+# ==== Builder (cache Maven layers) ====
+FROM maven:3.9-eclipse-temurin-17 AS build
+WORKDIR /app
+# Cache dependencies
 COPY pom.xml .
+RUN mvn -q -e -DskipTests dependency:go-offline
+# Now copy sources
 COPY src ./src
 RUN mvn -q -DskipTests package
 
-#run app
-FROM eclipse-temurin:21-jre
-WORKDIR /app
-COPY --from=build /src/target/*.jar /app/app.jar
+# ==== Runtime ====
+FROM eclipse-temurin:17-jre
+WORKDIR /opt/app
+COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8081
-ENTRYPOINT ["java", "-jar","/app/app.jar"]
+ENTRYPOINT ["java","-jar","/opt/app/app.jar"]

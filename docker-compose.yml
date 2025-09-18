@@ -1,7 +1,7 @@
 services:
-  db:
+  postgres:
     image: postgres:latest
-    container_name: paperless-postgres
+    container_name: paperless_postgres
     environment:
       POSTGRES_DB: paperless
       POSTGRES_USER: paperless
