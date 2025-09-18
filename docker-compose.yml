@@ -18,7 +18,7 @@ services:
     image: document-management-system-app:latest
     container_name: paperless-rest
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/paperless
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/paperless
       SPRING_DATASOURCE_USERNAME: paperless
       SPRING_DATASOURCE_PASSWORD: paperless
     ports:
