@@ -1,51 +1,128 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Paperless Document API
   version: 1.0.0
   description: REST API for managing documents
 servers:
-  - url: http://localhost:8081
+  - url: 'localhost:8081'
 paths:
-  /api/documents/{id}/content:
-    get:
-      summary: Download document content
-      operationId: downloadDocument
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      responses:
-        '200':
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: string
-                format: binary
-        '404':
-          description: Not Found
   /api/documents:
-    get:
-      summary: List all documents
-      operationId: listDocuments
+    post:
+      tags:
+        - paperless
+      summary: "Upload a new Document"
+      operationId: postItem
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: '#/components/schemas/Document'
+        required: true
       responses:
-        '200':
-          description: OK
+        200:
+          description: "Document sucessfully uploaded."
+        400:
+          description: "Document upload failed due to bad request!"
+    get:
+      tags:
+        - paperless
+      summary: "Returns a list of documents"
+      operationId: getItems
+      responses:
+        200:
+          description: "Success"
           content:
-            application/json:
+            "application/json":
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Document'
+                $ref: '#/components/schemas/Document'
+  /api/documents/{id}:
+    get:
+      tags:
+        - paperless
+      summary: "Retrieve a document by id"
+      operationId: getItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: long
+          description: The id of the document
+      responses:
+        200:
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: '#/components/schemas/Document'
+        404:
+          description: "Document does not exist with this id!"
+    put:
+      tags:
+        - paperless
+      summary: "Update a document by id"
+      operationId: updateItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: long
+          description: The id of the document
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: '#/components/schemas/Document'
+        required: true
+      responses:
+        200:
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: '#/components/schemas/Document'
+        404:
+          description: "Document does not exist with this id!"
+    delete:
+      tags:
+        - paperless
+      summary: "Delete a document by id"
+      operationId: deleteItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: long
+          description: The id of the todo-item
+      responses:
+        204:
+          description: "Todo-item deleted successfully"
+        404:
+          description: "Todo-item does not exist with this id!"
 components:
-  parameters:
-    IdPath:
-      in: path
-      name: id
-      required: true
-      schema: { type: string, format: uuid }
   schemas:
-    Document:
+    item:
       type: object
       properties:
-        id: { type: string, format: uuid }
-        title: { type: string }
-        contentText: { type: string, nullable: true }
+        id:
+          type: long
+          description: "The id of the todo-item"
+        title:
+          type: string
+          description: "The title of the todo-item"
+        details:
+          type: string
+          description: "The description of the todo-item"
+        status:
+          type: boolean
+          description: "If the todo-item is already done."
+        created:
+          type: string
+      required:
+        - title
+    items:
+      type: array
+      items:
+        $ref: '#/components/schemas/Document'
