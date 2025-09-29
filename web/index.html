@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Document Management – Frontend</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<header>
+    <h1>Document Management</h1>
+    <p class="muted">Frontend talking to REST API via NGINX proxy</p>
+</header>
+
+<main>
+    <section class="card">
+        <h2>Upload Document</h2>
+        <form id="uploadForm">
+            <input type="file" id="fileInput" name="file" required />
+            <button type="submit">Upload</button>
+        </form>
+        <div id="uploadResult" class="result"></div>
+    </section>
+
+    <section class="card">
+        <h2>Get Document by ID</h2>
+        <form id="getForm">
+            <input type="number" id="docId" placeholder="Document ID" min="1" required />
+            <button type="submit">Fetch</button>
+        </form>
+        <pre id="getResult" class="result"></pre>
+    </section>
+
+    <section class="card">
+        <h2>Quick Help</h2>
+        <ul>
+            <li>Backend API is proxied under <code>/api</code> (no CORS headaches).</li>
+            <li>Upload uses <code>POST /api/documents</code> (multipart).</li>
+            <li>Fetch uses <code>GET /api/documents/{id}</code>.</li>
+        </ul>
+    </section>
+</main>
+
+<footer>
+    <small>© 2025 DMS • UI served by NGINX</small>
+</footer>
+
+<script src="./app.js"></script>
+</body>
+</html>

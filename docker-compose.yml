@@ -10,10 +10,15 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperless -d paperless"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   app:
     build:
-      context: .
+      context: ./rest
       dockerfile: Dockerfile
     image: document-management-system-app:latest
     container_name: paperless-rest
@@ -21,9 +26,25 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/paperless
       SPRING_DATASOURCE_USERNAME: paperless
       SPRING_DATASOURCE_PASSWORD: paperless
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8081:8081"
     restart: unless-stopped
 
+  web:
+    image: nginx:alpine
+    container_name: paperless_web
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  dbdata:
