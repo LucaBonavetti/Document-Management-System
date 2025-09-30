@@ -1,13 +1,9 @@
 package paperless.paperless.bl.model;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-import java.time.OffsetDateTime;
-
-public class BlDocument {
-    private Long id;
+public class BlUploadRequest {
 
     @NotBlank(message = "filename must not be blank")
     private String filename;
@@ -17,11 +13,13 @@ public class BlDocument {
     @Positive(message = "size must be > 0")
     private long size;
 
-    @NotNull(message = "uploadedAt must not be null")
-    private OffsetDateTime uploadedAt;
+    public BlUploadRequest() {}
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public BlUploadRequest(String filename, String contentType, long size) {
+        this.filename = filename;
+        this.contentType = contentType;
+        this.size = size;
+    }
 
     public String getFilename() { return filename; }
     public void setFilename(String filename) { this.filename = filename; }
@@ -31,7 +29,4 @@ public class BlDocument {
 
     public long getSize() { return size; }
     public void setSize(long size) { this.size = size; }
-
-    public OffsetDateTime getUploadedAt() { return uploadedAt; }
-    public void setUploadedAt(OffsetDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
 }
