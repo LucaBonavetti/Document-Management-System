@@ -3,6 +3,7 @@ package paperless.paperless.controller;
 
 import paperless.paperless.bl.component.DocumentManager;
 import paperless.paperless.bl.model.BlDocument;
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.OffsetDateTime;
+import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.any;
@@ -63,13 +65,27 @@ class DocumentControllerTest {
         }
 
         @Test
-        @DisplayName("POST /api/documents with empty file -> 400")
+        @DisplayName("POST /api/documents with empty file -> 400 (controller-level)")
         void upload_emptyFile() throws Exception {
             MockMultipartFile empty = new MockMultipartFile(
                     "file", "empty.txt", MediaType.TEXT_PLAIN_VALUE, new byte[0]);
 
             mvc.perform(multipart("/api/documents").file(empty))
                     .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("POST /api/documents with BL validation error -> 400 via @ControllerAdvice")
+        void upload_blValidationError() throws Exception {
+            Mockito.when(documentManager.upload(any()))
+                    .thenThrow(new ConstraintViolationException("invalid", Collections.emptySet()));
+
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "bad.txt", MediaType.TEXT_PLAIN_VALUE, "x".getBytes());
+
+            mvc.perform(multipart("/api/documents").file(file))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
         }
     }
 

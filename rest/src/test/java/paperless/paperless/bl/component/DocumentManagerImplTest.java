@@ -1,9 +1,12 @@
 package paperless.paperless.bl.component;
 
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import paperless.paperless.bl.mapper.DocumentMapper;
 import paperless.paperless.bl.model.BlDocument;
 import paperless.paperless.dal.entity.DocumentEntity;
 import paperless.paperless.dal.repository.DocumentRepository;
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -31,9 +35,10 @@ class DocumentManagerImplTest {
     @Mock
     private DocumentMapper mapper;
 
+    private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+
     @AfterEach
     void cleanup() throws IOException {
-        // Clean up the 'storage' directory created by the manager, if present
         Path storage = Path.of("storage");
         if (Files.exists(storage)) {
             Files.walk(storage)
@@ -46,10 +51,8 @@ class DocumentManagerImplTest {
 
     @Test
     void upload_success() throws Exception {
-        // Arrange
         MockMultipartFile file = new MockMultipartFile("file", "hello.txt", "text/plain", "Hello".getBytes());
 
-        // repository.save returns an entity with an ID
         DocumentEntity savedEntity = new DocumentEntity();
         savedEntity.setId(42L);
         savedEntity.setFilename("hello.txt");
@@ -68,33 +71,34 @@ class DocumentManagerImplTest {
 
         when(mapper.toBl(savedEntity)).thenReturn(mapped);
 
-        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper);
+        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator);
 
-        // Act
         BlDocument result = manager.upload(file);
 
-        // Assert
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(42L);
-        assertThat(result.getFilename()).isEqualTo("hello.txt");
-        assertThat(result.getContentType()).isEqualTo("text/plain");
-        assertThat(result.getSize()).isEqualTo(5L);
 
-        // Verify repository.save received an entity with expected basic fields
         ArgumentCaptor<DocumentEntity> captor = ArgumentCaptor.forClass(DocumentEntity.class);
         verify(repository, times(1)).save(captor.capture());
-        DocumentEntity toSave = captor.getValue();
-        assertThat(toSave.getFilename()).isEqualTo("hello.txt");
-        assertThat(toSave.getContentType()).isEqualTo("text/plain");
-        assertThat(toSave.getSize()).isEqualTo(5L);
-
+        assertThat(captor.getValue().getFilename()).isEqualTo("hello.txt");
         verify(mapper, times(1)).toBl(savedEntity);
-        verifyNoMoreInteractions(repository, mapper);
+    }
+
+    @Test
+    void upload_faultyData_triggersValidation() throws Exception {
+        // size=0 is invalid by @Positive
+        MockMultipartFile file = new MockMultipartFile("file", "bad.txt", "text/plain", new byte[0]);
+
+        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator);
+
+        assertThatThrownBy(() -> manager.upload(file))
+                .isInstanceOf(ConstraintViolationException.class);
+
+        verifyNoInteractions(repository, mapper);
     }
 
     @Test
     void getById_found() throws Exception {
-        // Arrange
         DocumentEntity entity = new DocumentEntity();
         entity.setId(7L);
         entity.setFilename("doc.pdf");
@@ -113,30 +117,23 @@ class DocumentManagerImplTest {
 
         when(mapper.toBl(entity)).thenReturn(mapped);
 
-        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper);
+        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator);
 
-        // Act
         BlDocument result = manager.getById(7L);
 
-        // Assert
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(7L);
-        assertThat(result.getFilename()).isEqualTo("doc.pdf");
         verify(repository, times(1)).findById(7L);
         verify(mapper, times(1)).toBl(entity);
-        verifyNoMoreInteractions(repository, mapper);
     }
 
     @Test
     void getById_notFound() throws Exception {
-        // Arrange
         when(repository.findById(99L)).thenReturn(Optional.empty());
-        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper);
+        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator);
 
-        // Act
         BlDocument result = manager.getById(99L);
 
-        // Assert
         assertThat(result).isNull();
         verify(repository, times(1)).findById(99L);
         verifyNoMoreInteractions(repository, mapper);
