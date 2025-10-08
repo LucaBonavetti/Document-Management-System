@@ -14,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import paperless.paperless.messaging.OcrProducer;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -35,6 +36,9 @@ class DocumentManagerImplTest {
     @Mock
     private DocumentMapper mapper;
 
+    @Mock
+    private OcrProducer ocrProducer;
+
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
     @AfterEach
@@ -50,7 +54,7 @@ class DocumentManagerImplTest {
     }
 
     @Test
-    void upload_success() throws Exception {
+    void upload_success_persists_and_sends_ocr_job() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "hello.txt", "text/plain", "Hello".getBytes());
 
         DocumentEntity savedEntity = new DocumentEntity();
@@ -71,7 +75,7 @@ class DocumentManagerImplTest {
 
         when(mapper.toBl(savedEntity)).thenReturn(mapped);
 
-        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator);
+        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator, ocrProducer);
 
         BlDocument result = manager.upload(file);
 
@@ -81,20 +85,22 @@ class DocumentManagerImplTest {
         ArgumentCaptor<DocumentEntity> captor = ArgumentCaptor.forClass(DocumentEntity.class);
         verify(repository, times(1)).save(captor.capture());
         assertThat(captor.getValue().getFilename()).isEqualTo("hello.txt");
+        // verify OCR message was published
+        verify(ocrProducer, times(1)).send(any());
         verify(mapper, times(1)).toBl(savedEntity);
     }
 
     @Test
-    void upload_faultyData_triggersValidation() throws Exception {
+    void upload_faultyData_triggersValidation_and_no_publish() throws Exception {
         // size=0 is invalid by @Positive
         MockMultipartFile file = new MockMultipartFile("file", "bad.txt", "text/plain", new byte[0]);
 
-        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator);
+        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator, ocrProducer);
 
         assertThatThrownBy(() -> manager.upload(file))
                 .isInstanceOf(ConstraintViolationException.class);
 
-        verifyNoInteractions(repository, mapper);
+        verifyNoInteractions(repository, mapper, ocrProducer);
     }
 
     @Test
@@ -117,7 +123,7 @@ class DocumentManagerImplTest {
 
         when(mapper.toBl(entity)).thenReturn(mapped);
 
-        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator);
+        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator, ocrProducer);
 
         BlDocument result = manager.getById(7L);
 
@@ -125,17 +131,19 @@ class DocumentManagerImplTest {
         assertThat(result.getId()).isEqualTo(7L);
         verify(repository, times(1)).findById(7L);
         verify(mapper, times(1)).toBl(entity);
+        verifyNoInteractions(ocrProducer);
     }
 
     @Test
     void getById_notFound() throws Exception {
         when(repository.findById(99L)).thenReturn(Optional.empty());
-        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator);
+        DocumentManagerImpl manager = new DocumentManagerImpl(repository, mapper, validator, ocrProducer);
 
         BlDocument result = manager.getById(99L);
 
         assertThat(result).isNull();
         verify(repository, times(1)).findById(99L);
         verifyNoMoreInteractions(repository, mapper);
+        verifyNoInteractions(ocrProducer);
     }
 }
