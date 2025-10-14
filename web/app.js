@@ -31,15 +31,15 @@ uploadForm.addEventListener("submit", async (e) => {
         if (res.status === 201) {
             const json = await res.json();
             uploadResult.textContent =
-                `✅ Uploaded!\nLocation: /api/documents/${json.id}\n` +
+                `Uploaded!\nLocation: /api/documents/${json.id}\n` +
                 `Name: ${json.filename}\nSize: ${json.size} bytes\nType: ${json.contentType || "n/a"}`;
             docIdInput.value = json.id; // convenience for the Get form
         } else {
             const text = await res.text();
-            uploadResult.textContent = `❌ Upload failed (${res.status}).\n${text || ""}`;
+            uploadResult.textContent = `Upload failed (${res.status}).\n${text || ""}`;
         }
     } catch (err) {
-        uploadResult.textContent = `❌ Network error: ${err}`;
+        uploadResult.textContent = `Network error: ${err}`;
     }
 });
 
@@ -64,6 +64,6 @@ getForm.addEventListener("submit", async (e) => {
             getResult.textContent = `Error ${res.status}: ${await res.text()}`;
         }
     } catch (err) {
-        getResult.textContent = `❌ Network error: ${err}`;
+        getResult.textContent = `Network error: ${err}`;
     }
 });
