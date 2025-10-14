@@ -1,25 +1,23 @@
 package paperless.paperless.controller;
 
-
-import paperless.paperless.bl.component.DocumentManager;
-import paperless.paperless.bl.model.BlDocument;
 import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.beans.factory.annotation.Autowired;
+import paperless.paperless.bl.model.BlDocument;
+import paperless.paperless.bl.service.DocumentService;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
 
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -30,8 +28,9 @@ class DocumentControllerTest {
     @Autowired
     private MockMvc mvc;
 
+    @SuppressWarnings("removal")
     @MockBean
-    private DocumentManager documentManager;
+    private DocumentService documentService;
 
     private static BlDocument sampleDoc() {
         BlDocument d = new BlDocument();
@@ -47,9 +46,10 @@ class DocumentControllerTest {
     class UploadTests {
 
         @Test
-        @DisplayName("POST /api/documents -> 201 with Location + JSON")
+        @DisplayName("POST /api/documents -> 201 Created with Location and JSON body")
         void upload_success() throws Exception {
-            Mockito.when(documentManager.upload(any())).thenReturn(sampleDoc());
+            Mockito.when(documentService.saveDocument(anyString(), anyString(), anyLong(), any(byte[].class)))
+                    .thenReturn(sampleDoc());
 
             MockMultipartFile file = new MockMultipartFile(
                     "file", "hello.txt", MediaType.TEXT_PLAIN_VALUE, "Hello".getBytes());
@@ -77,7 +77,7 @@ class DocumentControllerTest {
         @Test
         @DisplayName("POST /api/documents with BL validation error -> 400 via @ControllerAdvice")
         void upload_blValidationError() throws Exception {
-            Mockito.when(documentManager.upload(any()))
+            Mockito.when(documentService.saveDocument(anyString(), anyString(), anyLong(), any(byte[].class)))
                     .thenThrow(new ConstraintViolationException("invalid", Collections.emptySet()));
 
             MockMultipartFile file = new MockMultipartFile(
@@ -93,9 +93,9 @@ class DocumentControllerTest {
     class GetByIdTests {
 
         @Test
-        @DisplayName("GET /api/documents/{id} -> 200 with JSON body")
+        @DisplayName("GET /api/documents/{id} -> 200 OK with JSON body")
         void get_found() throws Exception {
-            Mockito.when(documentManager.getById(anyLong())).thenReturn(sampleDoc());
+            Mockito.when(documentService.getById(anyLong())).thenReturn(sampleDoc());
 
             mvc.perform(get("/api/documents/{id}", 42))
                     .andExpect(status().isOk())
@@ -105,9 +105,9 @@ class DocumentControllerTest {
         }
 
         @Test
-        @DisplayName("GET /api/documents/{id} (not found) -> 404")
+        @DisplayName("GET /api/documents/{id} (not found) -> 404 Not Found")
         void get_notFound() throws Exception {
-            Mockito.when(documentManager.getById(anyLong())).thenReturn(null);
+            Mockito.when(documentService.getById(anyLong())).thenReturn(null);
 
             mvc.perform(get("/api/documents/{id}", 999))
                     .andExpect(status().isNotFound());
