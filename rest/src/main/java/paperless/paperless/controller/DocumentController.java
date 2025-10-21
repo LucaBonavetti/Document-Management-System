@@ -1,72 +1,76 @@
 package paperless.paperless.controller;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import paperless.paperless.bl.service.DocumentService;
+import org.springframework.web.util.UriComponentsBuilder;
+import paperless.paperless.bl.mapper.DocumentMapper;
 import paperless.paperless.bl.model.BlDocument;
+import paperless.paperless.bl.model.BlUploadRequest;
+import paperless.paperless.bl.service.DocumentService;
 import paperless.paperless.model.Document;
 
-import java.io.IOException;
-import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin
 public class DocumentController {
 
-    private static final Logger log = LoggerFactory.getLogger(DocumentController.class);
     private final DocumentService documentService;
+    private final DocumentMapper mapper;
 
-    public DocumentController(DocumentService documentService) {
+    // 50 MB soft guard (in addition to nginx client_max_body_size)
+    private static final long MAX_UPLOAD_BYTES = DataSize.ofMegabytes(50).toBytes();
+
+    public DocumentController(DocumentService documentService, DocumentMapper mapper) {
         this.documentService = documentService;
+        this.mapper = mapper;
     }
 
-    @PostMapping(
-            path = "/documents",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Document> upload(@RequestPart("file") MultipartFile file) throws IOException {
+    @PostMapping(path = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Document> upload(@RequestPart("file") MultipartFile file,
+                                           UriComponentsBuilder uriBuilder) throws Exception {
 
-        if (file.isEmpty()) {
-            log.warn("Upload file is empty");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File must not be empty.");
+        }
+        if (file.getSize() > MAX_UPLOAD_BYTES) {
+            throw new IllegalArgumentException("File exceeds maximum allowed size of 50 MB.");
         }
 
-        BlDocument saved = documentService.saveDocument(
+        BlUploadRequest req = new BlUploadRequest(
                 file.getOriginalFilename(),
                 file.getContentType(),
-                file.getSize(),
-                file.getBytes()
+                file.getSize()
         );
 
-        var location = "/api/documents/" + saved.getId();
-        var api = new Document(saved.getId(), saved.getFilename(), saved.getContentType(),
-                saved.getSize(), saved.getUploadedAt());
+        BlDocument saved = documentService.saveDocument(req, file.getBytes());
+        Document dto = mapper.toApi(saved);
 
-        log.info("Upload successful id={} -> {}", saved.getId(), location);
+        var location = uriBuilder.path("/api/documents/{id}")
+                .build(saved.getId());
 
         return ResponseEntity
-                .created(URI.create(location))
-                .header(HttpHeaders.LOCATION, location)
-                .body(api);
+                .created(location)
+                .header(HttpHeaders.LOCATION, location.toString())
+                .body(dto);
     }
 
     @GetMapping(path = "/documents/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Document> get(@PathVariable long id) {
-        BlDocument doc = documentService.getById(id);
-        if (doc == null) {
-            log.info("Document with id {} not found", id);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    public ResponseEntity<Document> getById(@PathVariable("id") Long id) {
+        BlDocument bl = documentService.getById(id);
+        if (bl == null) {
+            return ResponseEntity.notFound().build();
         }
+        return ResponseEntity.ok(mapper.toApi(bl));
+    }
 
-        var api = new Document(doc.getId(), doc.getFilename(), doc.getContentType(),
-                doc.getSize(), doc.getUploadedAt());
-        return ResponseEntity.ok(api);
+    @GetMapping(path = "/documents", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<Document>> list(@RequestParam(name = "limit", defaultValue = "10") int limit) {
+        List<BlDocument> items = documentService.getRecent(limit);
+        return ResponseEntity.ok(mapper.toApiList(items));
     }
 }

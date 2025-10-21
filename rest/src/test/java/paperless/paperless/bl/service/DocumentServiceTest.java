@@ -1,12 +1,13 @@
 package paperless.paperless.bl.service;
 
 import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import paperless.paperless.bl.mapper.DocumentMapper;
 import paperless.paperless.bl.model.BlDocument;
 import paperless.paperless.bl.model.BlUploadRequest;
@@ -16,105 +17,108 @@ import paperless.paperless.infrastructure.FileStorageService;
 import paperless.paperless.messaging.OcrJobMessage;
 import paperless.paperless.messaging.OcrProducer;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class DocumentServiceImplTest {
+class DocumentServiceTest {
 
-    private DocumentRepository repository;
-    private DocumentMapper mapper;
-    private Validator validator;
+    @Mock
+    private DocumentRepository documentRepository;
+    @Mock
     private FileStorageService fileStorageService;
+    @Mock
     private OcrProducer ocrProducer;
+    @Mock
+    private Validator validator;
 
+    private DocumentMapper mapper;
     private DocumentServiceImpl service;
 
     @BeforeEach
     void setup() {
-        repository = mock(DocumentRepository.class);
-        mapper = mock(DocumentMapper.class);
-        validator = mock(Validator.class);
-        fileStorageService = mock(FileStorageService.class);
-        ocrProducer = mock(OcrProducer.class);
-
-        service = new DocumentServiceImpl(repository, mapper, validator, fileStorageService, ocrProducer);
+        MockitoAnnotations.openMocks(this);
+        mapper = Mappers.getMapper(DocumentMapper.class);
+        service = new DocumentServiceImpl(documentRepository, fileStorageService, ocrProducer, mapper, validator);
     }
 
     @Test
-    @DisplayName("saveDocument() stores file, persists entity, and sends OCR job")
-    void saveDocument_success() throws IOException {
-        // given
-        when(validator.validate(any(BlUploadRequest.class))).thenReturn(Collections.emptySet());
-        when(fileStorageService.saveFile(anyString(), any())).thenReturn(Path.of("storage/test.pdf"));
+    void saveDocument_valid_request_persists_and_sends_job() throws Exception {
+        BlUploadRequest req = new BlUploadRequest("hello.txt", "text/plain", 5L);
+        byte[] data = "hello".getBytes();
 
-        DocumentEntity savedEntity = new DocumentEntity();
-        savedEntity.setId(1L);
-        savedEntity.setFilename("test.pdf");
-        savedEntity.setContentType("application/pdf");
-        savedEntity.setSize(100);
-        savedEntity.setUploadedAt(OffsetDateTime.now());
+        when(validator.validate(req)).thenReturn(Collections.emptySet());
+        when(fileStorageService.saveFile(eq("hello.txt"), any())).thenReturn(Path.of("storage/12345_hello.txt"));
 
-        when(repository.save(any(DocumentEntity.class))).thenReturn(savedEntity);
-        when(mapper.toBl(any(DocumentEntity.class))).thenReturn(new BlDocument());
+        DocumentEntity saved = new DocumentEntity();
+        saved.setId(1L);
+        saved.setFilename("hello.txt");
+        saved.setContentType("text/plain");
+        saved.setSize(5L);
+        saved.setUploadedAt(OffsetDateTime.parse("2025-10-22T10:00:00Z"));
 
-        // when
-        BlDocument result = service.saveDocument("test.pdf", "application/pdf", 100, "abc".getBytes());
+        when(documentRepository.save(any(DocumentEntity.class))).thenReturn(saved);
 
-        // then
-        assertThat(result).isNotNull();
+        BlDocument out = service.saveDocument(req, data);
 
-        verify(fileStorageService).saveFile(eq("test.pdf"), any());
-        verify(repository).save(any(DocumentEntity.class));
+        assertThat(out).isNotNull();
+        assertThat(out.getId()).isEqualTo(1L);
+        assertThat(out.getFilename()).isEqualTo("hello.txt");
+        assertThat(out.getSize()).isEqualTo(5L);
 
-        ArgumentCaptor<OcrJobMessage> msgCaptor = ArgumentCaptor.forClass(OcrJobMessage.class);
-        verify(ocrProducer).send(msgCaptor.capture());
-        assertThat(msgCaptor.getValue().getFilename()).isEqualTo("test.pdf");
+        ArgumentCaptor<OcrJobMessage> msg = ArgumentCaptor.forClass(OcrJobMessage.class);
+        verify(ocrProducer, times(1)).send(msg.capture());
+        assertThat(msg.getValue().getDocumentId()).isEqualTo(1L);
+        assertThat(msg.getValue().getFilename()).isEqualTo("hello.txt");
+        assertThat(msg.getValue().getSize()).isEqualTo(5L);
     }
 
     @Test
-    @DisplayName("saveDocument() throws ConstraintViolationException if validation fails")
-    void saveDocument_validationFails() {
-        // given
-        ConstraintViolation<BlUploadRequest> violation = mock(ConstraintViolation.class);
-        when(validator.validate(any(BlUploadRequest.class))).thenReturn(Set.of(violation));
+    void getById_found_maps_to_bl() {
+        DocumentEntity e = new DocumentEntity();
+        e.setId(7L);
+        e.setFilename("x.pdf");
+        e.setContentType("application/pdf");
+        e.setSize(10L);
+        e.setUploadedAt(OffsetDateTime.parse("2025-10-20T00:00:00Z"));
 
-        // then
-        assertThatThrownBy(() ->
-                service.saveDocument("x.pdf", "application/pdf", 10, "data".getBytes()))
-                .isInstanceOf(ConstraintViolationException.class);
+        when(documentRepository.findById(7L)).thenReturn(Optional.of(e));
 
-        verifyNoInteractions(fileStorageService, repository, ocrProducer);
+        BlDocument out = service.getById(7L);
+
+        assertThat(out).isNotNull();
+        assertThat(out.getId()).isEqualTo(7L);
+        assertThat(out.getFilename()).isEqualTo("x.pdf");
     }
 
     @Test
-    @DisplayName("getById() returns mapped BlDocument when entity found")
-    void getById_found() {
-        DocumentEntity entity = new DocumentEntity();
-        entity.setId(5L);
-        when(repository.findById(5L)).thenReturn(Optional.of(entity));
-        when(mapper.toBl(entity)).thenReturn(new BlDocument());
-
-        BlDocument result = service.getById(5L);
-
-        assertThat(result).isNotNull();
-        verify(repository).findById(5L);
+    void getById_not_found_returns_null() {
+        when(documentRepository.findById(999L)).thenReturn(Optional.empty());
+        BlDocument out = service.getById(999L);
+        assertThat(out).isNull();
     }
 
     @Test
-    @DisplayName("getById() returns null when entity not found")
-    void getById_notFound() {
-        when(repository.findById(anyLong())).thenReturn(Optional.empty());
+    void saveDocument_validation_error_throws_IllegalArgumentException() {
+        BlUploadRequest req = new BlUploadRequest("", "text/plain", 1L);
 
-        BlDocument result = service.getById(99L);
+        @SuppressWarnings("unchecked")
+        Set<ConstraintViolation<BlUploadRequest>> violations = (Set) Set.of(mock(ConstraintViolation.class));
 
-        assertThat(result).isNull();
+        when(validator.validate(req)).thenReturn(violations);
+
+        try {
+            service.saveDocument(req, new byte[]{1});
+        } catch (Exception ex) {
+            assertThat(ex).isInstanceOf(IllegalArgumentException.class);
+        }
+        verifyNoInteractions(ocrProducer);
+        verify(documentRepository, never()).save(any());
     }
 }

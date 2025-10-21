@@ -1,50 +1,66 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <title>Document Management – Frontend</title>
+    <meta charset="UTF-8" />
+    <title>Paperless – Document Management</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link href="/styles.css" rel="stylesheet" />
 </head>
 <body>
-<header>
-    <h1>Document Management</h1>
-    <p class="muted">Frontend talking to REST API via NGINX proxy</p>
+<header class="header">
+    <h1>Paperless</h1>
+    <p class="subtitle">Upload documents and view recent uploads</p>
 </header>
 
-<main>
+<main class="container">
     <section class="card">
-        <h2>Upload Document</h2>
-        <form id="uploadForm">
-            <input type="file" id="fileInput" name="file" required />
-            <button type="submit">Upload</button>
-        </form>
-        <div id="uploadResult" class="result"></div>
+        <h2>Upload a Document</h2>
+        <div id="dropzone" class="dropzone">
+            <p><strong>Drag &amp; drop</strong> a file here or click to choose</p>
+            <input id="fileInput" type="file" hidden />
+        </div>
+        <button id="uploadBtn" class="btn" disabled>Upload</button>
+        <div id="uploadStatus" class="muted"></div>
     </section>
 
     <section class="card">
-        <h2>Get Document by ID</h2>
-        <form id="getForm">
-            <input type="number" id="docId" placeholder="Document ID" min="1" required />
-            <button type="submit">Fetch</button>
-        </form>
-        <pre id="getResult" class="result"></pre>
+        <h2>Find a Document by ID</h2>
+        <div class="row">
+            <input id="docIdInput" type="number" placeholder="Enter document ID…" />
+            <button id="getBtn" class="btn">Get</button>
+        </div>
+        <pre id="getResult" class="code"></pre>
     </section>
 
     <section class="card">
-        <h2>Quick Help</h2>
-        <ul>
-            <li>Backend API is proxied under <code>/api</code> (no CORS headaches).</li>
-            <li>Upload uses <code>POST /api/documents</code> (multipart).</li>
-            <li>Fetch uses <code>GET /api/documents/{id}</code>.</li>
-        </ul>
+        <h2>Recent Documents</h2>
+        <div class="row">
+            <label for="limitSel">Show</label>
+            <select id="limitSel">
+                <option>5</option>
+                <option selected>10</option>
+                <option>20</option>
+                <option>50</option>
+            </select>
+            <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
+        </div>
+        <table class="table" id="recentTable">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Filename</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Uploaded</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </section>
 </main>
 
-<footer>
-    <small>© 2025 DMS • UI served by NGINX</small>
-</footer>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script src="./app.js"></script>
+<script src="/app.js"></script>
 </body>
 </html>
