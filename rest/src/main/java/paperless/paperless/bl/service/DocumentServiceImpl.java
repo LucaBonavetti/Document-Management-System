@@ -15,7 +15,6 @@ import paperless.paperless.messaging.OcrJobMessage;
 import paperless.paperless.messaging.OcrProducer;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.time.OffsetDateTime;
 
 @Service
@@ -44,9 +43,9 @@ public class DocumentServiceImpl implements DocumentService {
         var violations = validator.validate(req);
         if (!violations.isEmpty()) throw new ConstraintViolationException(violations);
 
-        // Save file
-        Path storedPath = fileStorageService.saveFile(filename, bytes);
-        log.info("Stored file '{}' at {}", filename, storedPath);
+        // Upload to MinIO
+        String objectKey = fileStorageService.uploadFile(filename, bytes);
+        log.info("File '{}' uploaded to MinIO with key '{}'", filename, objectKey);
 
         // Save metadata
         DocumentEntity entity = new DocumentEntity();
@@ -54,12 +53,13 @@ public class DocumentServiceImpl implements DocumentService {
         entity.setContentType(req.getContentType());
         entity.setSize(req.getSize());
         entity.setUploadedAt(OffsetDateTime.now());
+        entity.setObjectKey(objectKey);
 
         var saved = repository.save(entity);
 
         // Send OCR job
         var msg = new OcrJobMessage(saved.getId(), saved.getFilename(), saved.getContentType(), saved.getSize(),
-                storedPath.toAbsolutePath().toString(), saved.getUploadedAt());
+                objectKey, saved.getUploadedAt());
         ocrProducer.send(msg);
 
         return mapper.toBl(saved);

@@ -49,11 +49,15 @@ class DocumentServiceImplTest {
     }
 
     @Test
-    @DisplayName("saveDocument() stores file, persists entity, and sends OCR job")
+    @DisplayName("saveDocument() uploads file to MinIO, persists entity, and sends OCR job")
     void saveDocument_success() throws IOException {
         // given
-        when(validator.validate(any(BlUploadRequest.class))).thenReturn(Collections.emptySet());
-        when(fileStorageService.saveFile(anyString(), any())).thenReturn(Path.of("storage/test.pdf"));
+        when(validator.validate(any(BlUploadRequest.class)))
+                .thenReturn(Collections.emptySet());
+
+        // mock the uploadFile() method to return a fake MinIO object key
+        when(fileStorageService.uploadFile(anyString(), any()))
+                .thenReturn("1234_test.pdf");
 
         DocumentEntity savedEntity = new DocumentEntity();
         savedEntity.setId(1L);
@@ -61,9 +65,13 @@ class DocumentServiceImplTest {
         savedEntity.setContentType("application/pdf");
         savedEntity.setSize(100);
         savedEntity.setUploadedAt(OffsetDateTime.now());
+        savedEntity.setObjectKey("1234_test.pdf");
 
-        when(repository.save(any(DocumentEntity.class))).thenReturn(savedEntity);
-        when(mapper.toBl(any(DocumentEntity.class))).thenReturn(new BlDocument());
+        when(repository.save(any(DocumentEntity.class)))
+                .thenReturn(savedEntity);
+
+        when(mapper.toBl(any(DocumentEntity.class)))
+                .thenReturn(new BlDocument());
 
         // when
         BlDocument result = service.saveDocument("test.pdf", "application/pdf", 100, "abc".getBytes());
@@ -71,12 +79,19 @@ class DocumentServiceImplTest {
         // then
         assertThat(result).isNotNull();
 
-        verify(fileStorageService).saveFile(eq("test.pdf"), any());
+        // verify that uploadFile() was called with the correct filename
+        verify(fileStorageService).uploadFile(eq("test.pdf"), any());
+
+        // verify entity persisted
         verify(repository).save(any(DocumentEntity.class));
 
+        // verify that an OCR job was sent
         ArgumentCaptor<OcrJobMessage> msgCaptor = ArgumentCaptor.forClass(OcrJobMessage.class);
         verify(ocrProducer).send(msgCaptor.capture());
-        assertThat(msgCaptor.getValue().getFilename()).isEqualTo("test.pdf");
+        OcrJobMessage sentMsg = msgCaptor.getValue();
+
+        assertThat(sentMsg.getFilename()).isEqualTo("test.pdf");
+        assertThat(sentMsg.getStoredPath()).isEqualTo("1234_test.pdf");
     }
 
     @Test
