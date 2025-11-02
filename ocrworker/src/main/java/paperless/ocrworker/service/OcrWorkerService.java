@@ -24,7 +24,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -33,9 +32,6 @@ public class OcrWorkerService {
 
     private final MinioClient minioClient;
     private final MinioConfig minioConfig;
-
-    @Value("${ocr.queue.name:OCR_QUEUE}")
-    private String queueName;
 
     @Value("${ocr.langs:eng}")
     private String ocrLangs;
@@ -55,6 +51,9 @@ public class OcrWorkerService {
     @Value("${ocr.storeText:true}")
     private boolean storeTextToMinio;
 
+    @Value("${ocr.tesseract-cmd:}")
+    private String tessCmdProp;
+
     public OcrWorkerService(MinioClient minioClient, MinioConfig minioConfig) {
         this.minioClient = minioClient;
         this.minioConfig = minioConfig;
@@ -71,8 +70,7 @@ public class OcrWorkerService {
             String ext = getExt(filename);
             temp = Files.createTempFile("ocr_in_", ext);
 
-            try (InputStream in = minioClient.getObject(
-                    GetObjectArgs.builder().bucket(bucket).object(key).build())) {
+            try (InputStream in = fetchFromMinio(bucket, key)) {
                 Files.copy(in, temp, StandardCopyOption.REPLACE_EXISTING);
             } catch (io.minio.errors.ErrorResponseException e) {
                 if ("NoSuchKey".equalsIgnoreCase(e.errorResponse().code())) {
@@ -152,17 +150,15 @@ public class OcrWorkerService {
         try {
             ImageIO.write(img, "png", inPng.toFile());
 
-            List<String> cmd = List.of(
-                    "tesseract",
+            Process p = new ProcessBuilder(
+                    tesseractCmd(),
                     inPng.toString(),
                     outBase.toString(),
                     "-l", ocrLangs,
                     "--psm", ocrPsm,
                     "--oem", "1",
-                    "--dpi", String.valueOf(Math.max(100, ocrDpi)) // guard against weird values
-            );
-
-            Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+                    "--dpi", String.valueOf(Math.max(100, ocrDpi))
+            ).redirectErrorStream(true).start();
 
             // capture CLI output (useful when it fails)
             StringBuilder cli = new StringBuilder();
@@ -202,5 +198,20 @@ public class OcrWorkerService {
         if (filename == null) return ".bin";
         int dot = filename.lastIndexOf('.');
         return dot >= 0 ? filename.substring(dot) : ".bin";
+    }
+
+    protected InputStream fetchFromMinio(String bucket, String key) throws Exception {
+        return minioClient.getObject(
+                GetObjectArgs.builder().bucket(bucket).object(key).build()
+        );
+    }
+
+    private String tesseractCmd() {
+        String p = System.getProperty("ocr.tesseract-cmd");
+        if (p != null && !p.isBlank()) return p;
+        if (tessCmdProp != null && !tessCmdProp.isBlank()) return tessCmdProp;
+        String env = System.getenv("TESSERACT_CMD");
+        if (env != null && !env.isBlank()) return env;
+        return "tesseract";
     }
 }

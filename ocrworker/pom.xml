@@ -7,7 +7,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.5</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
 
     <groupId>paperless</groupId>
@@ -24,7 +24,7 @@
     </properties>
 
     <dependencies>
-        <!-- Core Spring Boot (logging, JSON, etc.) -->
+        <!-- Core Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
@@ -36,7 +36,7 @@
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
-        <!-- Health/info endpoints -->
+        <!-- Actuator -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
@@ -49,26 +49,25 @@
             <version>${minio.version}</version>
         </dependency>
 
-        <!-- PDF rendering to images -->
+        <!-- PDFBox -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>${pdfbox.version}</version>
         </dependency>
 
-        <!-- Java time module for Jackson (used in message converter) -->
+        <!-- Jackson Java Time -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
-        <!-- ===== Test deps ===== -->
+        <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
             <exclusions>
-                <!-- keep it lean; no vintage engine -->
                 <exclusion>
                     <groupId>org.junit.vintage</groupId>
                     <artifactId>junit-vintage-engine</artifactId>
@@ -79,7 +78,7 @@
 
     <build>
         <plugins>
-            <!-- Build executable Spring Boot jar -->
+            <!-- Spring Boot jar -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -88,7 +87,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Java 17 compile -->
+            <!-- Java 17 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -98,14 +97,14 @@
                 </configuration>
             </plugin>
 
-            <!-- JUnit 5 runner -->
+            <!-- JUnit 5 + silence Byte Buddy self-attach warning -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
-                    <!-- avoids JPMS module path quirks -->
                     <useModulePath>false</useModulePath>
+                    <argLine>-XX:+EnableDynamicAgentLoading</argLine>
                 </configuration>
             </plugin>
         </plugins>
