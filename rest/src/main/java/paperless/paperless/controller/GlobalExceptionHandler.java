@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Global error mapping so exceptions never crash or "block" the app.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -24,7 +27,7 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> body = new HashMap<>();
         body.put("status", HttpStatus.BAD_REQUEST.value());
-        body.put("error", "Bad Request");
+        body.put("error", "Constraint violation");
         body.put("messages", messages);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);

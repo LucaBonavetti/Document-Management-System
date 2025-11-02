@@ -31,10 +31,7 @@ public class DocumentController {
         this.mapper = mapper;
     }
 
-    @PostMapping(
-            path = "/documents",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(path = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Document> upload(@RequestPart("file") MultipartFile file,
                                            UriComponentsBuilder uriBuilder) throws Exception {
 

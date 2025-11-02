@@ -1,8 +1,5 @@
 package paperless.paperless.controller;
 
-import jakarta.validation.ConstraintViolationException;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +8,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import paperless.paperless.bl.mapper.DocumentMapper;
 import paperless.paperless.bl.model.BlDocument;
 import paperless.paperless.bl.model.BlUploadRequest;
 import paperless.paperless.bl.service.DocumentService;
@@ -18,7 +16,7 @@ import paperless.paperless.bl.mapper.DocumentMapper;
 import paperless.paperless.model.Document;
 
 import java.time.OffsetDateTime;
-import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.ArgumentMatchers.*;
