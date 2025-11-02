@@ -16,7 +16,24 @@ public class RabbitConfig {
 
     @Bean
     public Queue ocrQueue(@org.springframework.beans.factory.annotation.Value("${ocr.queue.name}") String name) {
-        return new Queue(name, true);
+        return new Queue(name, true, false, false, java.util.Map.of(
+                "x-dead-letter-exchange", "",
+                "x-dead-letter-routing-key", name + "_RETRY"
+        ));
+    }
+
+    @Bean
+    public Queue ocrRetryQueue(@org.springframework.beans.factory.annotation.Value("${ocr.queue.name}") String name) {
+        return new Queue(name + "_RETRY", true, false, false, java.util.Map.of(
+                "x-message-ttl", 10000, // 10s delay
+                "x-dead-letter-exchange", "",
+                "x-dead-letter-routing-key", name
+        ));
+    }
+
+    @Bean
+    public Queue ocrDlq(@org.springframework.beans.factory.annotation.Value("${ocr.queue.name}") String name) {
+        return new Queue(name + "_DLQ", true);
     }
 
     @Bean
@@ -39,14 +56,15 @@ public class RabbitConfig {
     }
 
     @Bean
-    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
+    public SimpleRabbitListenerContainerFactory ocrListenerFactory(
             ConnectionFactory cf,
             Jackson2JsonMessageConverter conv) {
-
         SimpleRabbitListenerContainerFactory f = new SimpleRabbitListenerContainerFactory();
         f.setConnectionFactory(cf);
         f.setMessageConverter(conv);
+
         f.setDefaultRequeueRejected(false);
+
         f.setConcurrentConsumers(1);
         f.setMaxConcurrentConsumers(1);
         f.setPrefetchCount(1);

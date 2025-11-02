@@ -18,8 +18,8 @@ public class OcrConsumer {
         log.info("Rabbit listener will consume from queue='{}'", q);
     }
 
-    @RabbitListener(queues = "${ocr.queue.name}", containerFactory = "rabbitListenerContainerFactory")
-    public void onMessage(paperless.paperless.messaging.OcrJobMessage msg) {
+    @RabbitListener(queues = "${ocr.queue.name}", containerFactory = "ocrListenerFactory")
+    public void onMessage(OcrJobMessage msg) {
         log.info("Received OCR job message for file '{}'", msg.getFilename());
         service.process(msg);
     }
