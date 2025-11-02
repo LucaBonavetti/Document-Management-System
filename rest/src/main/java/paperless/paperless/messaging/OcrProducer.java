@@ -20,7 +20,8 @@ public class OcrProducer {
     }
 
     public void send(OcrJobMessage msg) {
-        log.info("Publishing OCR job: id={} file='{}' path='{}'", msg.getDocumentId(), msg.getFilename(), msg.getStoredPath());
-        rabbitTemplate.convertAndSend(ocrQueue.getName(), msg);
+        String q = ocrQueue.getName();
+        log.info("Publishing OCR job to queue='{}' file='{}' path='{}'", q, msg.getFilename(), msg.getStoredPath());
+        rabbitTemplate.convertAndSend("", q, msg);
     }
 }

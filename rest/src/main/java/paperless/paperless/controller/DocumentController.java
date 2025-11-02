@@ -13,6 +13,7 @@ import paperless.paperless.bl.model.BlUploadRequest;
 import paperless.paperless.bl.service.DocumentService;
 import paperless.paperless.model.Document;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -50,8 +51,10 @@ public class DocumentController {
         BlDocument saved = documentService.saveDocument(req, file.getBytes());
         Document dto = mapper.toApi(saved);
 
-        var location = uriBuilder.path("/api/documents/{id}")
-                .build(saved.getId());
+        URI location = uriBuilder
+                .path("/api/documents/{id}")
+                .buildAndExpand(saved.getId())
+                .toUri();
 
         return ResponseEntity
                 .created(location)

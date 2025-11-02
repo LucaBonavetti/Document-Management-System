@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Build REST
+      - name: Build REST
+        run: mvn -q -f rest/pom.xml clean verify
+
+      # Build OCR Worker
+      - name: Build OCR Worker
+        run: mvn -q -f ocrworker/pom.xml clean verify
+
+      # Build Docker images to ensure Dockerfiles are valid
+      - name: Docker build (optional)
+        run: |
+          docker build -t paperless-app:ci ./rest
+          docker build -t paperless-ocrworker:ci ./ocrworker

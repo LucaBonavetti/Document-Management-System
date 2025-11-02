@@ -17,7 +17,6 @@ import paperless.paperless.infrastructure.FileStorageService;
 import paperless.paperless.messaging.OcrJobMessage;
 import paperless.paperless.messaging.OcrProducer;
 
-import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.Optional;
@@ -54,7 +53,10 @@ class DocumentServiceTest {
         byte[] data = "hello".getBytes();
 
         when(validator.validate(req)).thenReturn(Collections.emptySet());
-        when(fileStorageService.saveFile(eq("hello.txt"), any())).thenReturn(Path.of("storage/12345_hello.txt"));
+
+        // NEW: uploadFile returns MinIO object key (String), not a Path
+        when(fileStorageService.uploadFile(eq("hello.txt"), any()))
+                .thenReturn("objects/12345_hello.txt");
 
         DocumentEntity saved = new DocumentEntity();
         saved.setId(1L);
@@ -62,6 +64,7 @@ class DocumentServiceTest {
         saved.setContentType("text/plain");
         saved.setSize(5L);
         saved.setUploadedAt(OffsetDateTime.parse("2025-10-22T10:00:00Z"));
+        saved.setObjectKey("objects/12345_hello.txt");
 
         when(documentRepository.save(any(DocumentEntity.class))).thenReturn(saved);
 
@@ -72,11 +75,19 @@ class DocumentServiceTest {
         assertThat(out.getFilename()).isEqualTo("hello.txt");
         assertThat(out.getSize()).isEqualTo(5L);
 
+        // verify file upload call
+        verify(fileStorageService, times(1)).uploadFile(eq("hello.txt"), any());
+
+        // verify entity persisted
+        verify(documentRepository, times(1)).save(any(DocumentEntity.class));
+
+        // verify OCR job sent with storedPath = objectKey
         ArgumentCaptor<OcrJobMessage> msg = ArgumentCaptor.forClass(OcrJobMessage.class);
         verify(ocrProducer, times(1)).send(msg.capture());
         assertThat(msg.getValue().getDocumentId()).isEqualTo(1L);
         assertThat(msg.getValue().getFilename()).isEqualTo("hello.txt");
         assertThat(msg.getValue().getSize()).isEqualTo(5L);
+        assertThat(msg.getValue().getStoredPath()).isEqualTo("objects/12345_hello.txt");
     }
 
     @Test
@@ -87,6 +98,7 @@ class DocumentServiceTest {
         e.setContentType("application/pdf");
         e.setSize(10L);
         e.setUploadedAt(OffsetDateTime.parse("2025-10-20T00:00:00Z"));
+        e.setObjectKey("objects/x.pdf");
 
         when(documentRepository.findById(7L)).thenReturn(Optional.of(e));
 
@@ -109,7 +121,8 @@ class DocumentServiceTest {
         BlUploadRequest req = new BlUploadRequest("", "text/plain", 1L);
 
         @SuppressWarnings("unchecked")
-        Set<ConstraintViolation<BlUploadRequest>> violations = (Set) Set.of(mock(ConstraintViolation.class));
+        Set<ConstraintViolation<BlUploadRequest>> violations =
+                (Set) Set.of(mock(ConstraintViolation.class));
 
         when(validator.validate(req)).thenReturn(violations);
 

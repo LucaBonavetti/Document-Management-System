@@ -23,6 +23,9 @@ public class DocumentEntity {
     @Column(nullable = false)
     private OffsetDateTime uploadedAt;
 
+    @Column(name = "object_key")
+    private String objectKey;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -37,4 +40,7 @@ public class DocumentEntity {
 
     public OffsetDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(OffsetDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
+
+    public String getObjectKey() { return objectKey; }
+    public void setObjectKey(String objectKey) { this.objectKey = objectKey; }
 }
