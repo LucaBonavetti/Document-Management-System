@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
-  title: Document Management API
-  version: 0.1.0
+  title: Paperless – Document API
+  version: 1.0.0
 servers:
   - url: http://localhost:8081
 paths:
   /api/documents:
     post:
+      summary: Upload a document
       operationId: uploadDocument
-      tags: [Documents]
       requestBody:
         required: true
         content:
@@ -25,7 +25,7 @@ paths:
           description: Created
           headers:
             Location:
-              description: URL of the created document resource
+              description: Resource URL of the created document
               schema:
                 type: string
           content:
@@ -33,14 +33,32 @@ paths:
               schema:
                 $ref: '#/components/schemas/Document'
         '400':
-          description: Bad Request (e.g., empty file)
-        '500':
-          description: Unexpected error
+          description: Bad request
+    get:
+      summary: List recent documents
+      operationId: listDocuments
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Maximum number of items to return
+      responses:
+        '200':
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Document'
   /api/documents/{id}:
     get:
-      summary: Get uploaded document metadata
-      operationId: getDocument
-      tags: [Documents]
+      summary: Get a document by id
+      operationId: getDocumentById
       parameters:
         - name: id
           in: path
@@ -50,21 +68,29 @@ paths:
             format: int64
       responses:
         '200':
-          description: OK
+          description: Document
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Document'
         '404':
-          description: Not Found
+          description: Not found
 components:
   schemas:
     Document:
       type: object
       properties:
-        id: { type: integer, format: int64 }
-        filename: { type: string }
-        contentType: { type: string }
-        size: { type: integer, format: int64 }
-        uploadedAt: { type: string, format: date-time }
-      required: [id, filename, size, uploadedAt]
+        id:
+          type: integer
+          format: int64
+        filename:
+          type: string
+        contentType:
+          type: string
+        size:
+          type: integer
+          format: int64
+        uploadedAt:
+          type: string
+          format: date-time
+      required: [id, filename, contentType, size, uploadedAt]

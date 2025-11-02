@@ -12,12 +12,17 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import paperless.paperless.bl.model.BlDocument;
+import paperless.paperless.bl.model.BlUploadRequest;
 import paperless.paperless.bl.service.DocumentService;
+import paperless.paperless.bl.mapper.DocumentMapper;
+import paperless.paperless.model.Document;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
 
+import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.ArgumentMatchers.*;
+import org.springframework.http.HttpHeaders;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -28,11 +33,13 @@ class DocumentControllerTest {
     @Autowired
     private MockMvc mvc;
 
-    @SuppressWarnings("removal")
     @MockBean
     private DocumentService documentService;
 
-    private static BlDocument sampleDoc() {
+    @MockBean
+    private DocumentMapper mapper;
+
+    private static BlDocument sampleBl() {
         BlDocument d = new BlDocument();
         d.setId(42L);
         d.setFilename("hello.txt");
@@ -42,21 +49,35 @@ class DocumentControllerTest {
         return d;
     }
 
+    private static Document sampleDto() {
+        return new Document(
+                42L,
+                "hello.txt",
+                "text/plain",
+                12L,
+                OffsetDateTime.parse("2024-01-01T10:00:00Z")
+        );
+    }
+
     @Nested
     class UploadTests {
 
         @Test
         @DisplayName("POST /api/documents -> 201 Created with Location and JSON body")
         void upload_success() throws Exception {
-            Mockito.when(documentService.saveDocument(anyString(), anyString(), anyLong(), any(byte[].class)))
-                    .thenReturn(sampleDoc());
+            BlDocument bl = sampleBl();
+            Document dto = sampleDto();
+
+            Mockito.when(documentService.saveDocument(any(BlUploadRequest.class), any(byte[].class)))
+                    .thenReturn(bl);
+            Mockito.when(mapper.toApi(bl)).thenReturn(dto);
 
             MockMultipartFile file = new MockMultipartFile(
                     "file", "hello.txt", MediaType.TEXT_PLAIN_VALUE, "Hello".getBytes());
 
             mvc.perform(multipart("/api/documents").file(file))
                     .andExpect(status().isCreated())
-                    .andExpect(header().string("Location", "/api/documents/42"))
+                    .andExpect(header().string(HttpHeaders.LOCATION, endsWith("/api/documents/42")))
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                     .andExpect(jsonPath("$.id").value(42))
                     .andExpect(jsonPath("$.filename").value("hello.txt"))
@@ -65,7 +86,7 @@ class DocumentControllerTest {
         }
 
         @Test
-        @DisplayName("POST /api/documents with empty file -> 400 (controller-level)")
+        @DisplayName("POST /api/documents with empty file -> 400")
         void upload_emptyFile() throws Exception {
             MockMultipartFile empty = new MockMultipartFile(
                     "file", "empty.txt", MediaType.TEXT_PLAIN_VALUE, new byte[0]);
@@ -77,7 +98,7 @@ class DocumentControllerTest {
         @Test
         @DisplayName("POST /api/documents with BL validation error -> 400 via @ControllerAdvice")
         void upload_blValidationError() throws Exception {
-            Mockito.when(documentService.saveDocument(anyString(), anyString(), anyLong(), any(byte[].class)))
+            Mockito.when(documentService.saveDocument(any(BlUploadRequest.class), any(byte[].class)))
                     .thenThrow(new ConstraintViolationException("invalid", Collections.emptySet()));
 
             MockMultipartFile file = new MockMultipartFile(
@@ -95,7 +116,11 @@ class DocumentControllerTest {
         @Test
         @DisplayName("GET /api/documents/{id} -> 200 OK with JSON body")
         void get_found() throws Exception {
-            Mockito.when(documentService.getById(anyLong())).thenReturn(sampleDoc());
+            BlDocument bl = sampleBl();
+            Document dto = sampleDto();
+
+            Mockito.when(documentService.getById(anyLong())).thenReturn(bl);
+            Mockito.when(mapper.toApi(bl)).thenReturn(dto);
 
             mvc.perform(get("/api/documents/{id}", 42))
                     .andExpect(status().isOk())

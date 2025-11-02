@@ -1,9 +1,15 @@
 package paperless.paperless.bl.service;
 
 import paperless.paperless.bl.model.BlDocument;
-import java.io.IOException;
+import paperless.paperless.bl.model.BlUploadRequest;
+
+import java.util.List;
 
 public interface DocumentService {
-    BlDocument saveDocument(String filename, String contentType, long size, byte[] bytes) throws IOException;
-    BlDocument getById(long id);
+
+    BlDocument saveDocument(BlUploadRequest request, byte[] data) throws Exception;
+
+    BlDocument getById(Long id);
+
+    List<BlDocument> getRecent(int limit);
 }

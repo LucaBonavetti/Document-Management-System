@@ -1,8 +1,8 @@
 package paperless.paperless.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
@@ -15,22 +15,24 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitConfig {
 
     @Bean
-    public Queue ocrQueue(@org.springframework.beans.factory.annotation.Value("${ocr.queue.name}") String name) {
+    public Queue ocrQueue(
+            @org.springframework.beans.factory.annotation.Value("${ocr.queue.name:${OCR_QUEUE_NAME:OCR_QUEUE}}")
+            String name) {
         return new Queue(name, true);
     }
 
     @Bean
-    public AmqpAdmin amqpAdmin(ConnectionFactory cf) {
+    public RabbitAdmin amqpAdmin(ConnectionFactory cf) {
         RabbitAdmin admin = new RabbitAdmin(cf);
-        admin.setAutoStartup(true);
+        admin.setAutoStartup(false); // prevents auto-declare of the Queue bean
         return admin;
     }
 
     @Bean
     public ObjectMapper rabbitObjectMapper() {
-        ObjectMapper om = new ObjectMapper();
-        om.registerModule(new JavaTimeModule()); // for OffsetDateTime
-        return om;
+        return new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     @Bean
@@ -42,13 +44,12 @@ public class RabbitConfig {
     public RabbitTemplate rabbitTemplate(ConnectionFactory cf, Jackson2JsonMessageConverter conv) {
         RabbitTemplate rt = new RabbitTemplate(cf);
         rt.setMessageConverter(conv);
-        rt.setMandatory(true); // make unroutable messages visible
-        rt.setReturnsCallback(ret -> {
-            System.err.println("UNROUTABLE: code=" + ret.getReplyCode()
-                    + " text=" + ret.getReplyText()
-                    + " exch='" + ret.getExchange()
-                    + "' key='" + ret.getRoutingKey() + "'");
-        });
+        rt.setMandatory(true);
+        rt.setReturnsCallback(ret -> System.err.println(
+                "UNROUTABLE: code=" + ret.getReplyCode()
+                        + " text=" + ret.getReplyText()
+                        + " exch='" + ret.getExchange()
+                        + "' key='" + ret.getRoutingKey() + "'"));
         return rt;
     }
 }
