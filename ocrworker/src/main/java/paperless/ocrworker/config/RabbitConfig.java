@@ -1,12 +1,12 @@
-package paperless.paperless.config;
+package paperless.ocrworker.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,16 +39,17 @@ public class RabbitConfig {
     }
 
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory cf, Jackson2JsonMessageConverter conv) {
-        RabbitTemplate rt = new RabbitTemplate(cf);
-        rt.setMessageConverter(conv);
-        rt.setMandatory(true); // make unroutable messages visible
-        rt.setReturnsCallback(ret -> {
-            System.err.println("UNROUTABLE: code=" + ret.getReplyCode()
-                    + " text=" + ret.getReplyText()
-                    + " exch='" + ret.getExchange()
-                    + "' key='" + ret.getRoutingKey() + "'");
-        });
-        return rt;
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
+            ConnectionFactory cf,
+            Jackson2JsonMessageConverter conv) {
+
+        SimpleRabbitListenerContainerFactory f = new SimpleRabbitListenerContainerFactory();
+        f.setConnectionFactory(cf);
+        f.setMessageConverter(conv);
+        f.setDefaultRequeueRejected(false);
+        f.setConcurrentConsumers(1);
+        f.setMaxConcurrentConsumers(1);
+        f.setPrefetchCount(1);
+        return f;
     }
 }

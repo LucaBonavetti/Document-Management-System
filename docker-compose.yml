@@ -89,6 +89,44 @@ services:
       timeout: 5s
       retries: 5
 
+  ocrworker:
+    build:
+      context: ./ocrworker
+      dockerfile: Dockerfile
+    image: paperless-ocrworker:latest
+    container_name: paperless_ocrworker
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: paperless
+      SPRING_RABBITMQ_PASSWORD: paperless
+      SPRING_RABBITMQ_VIRTUAL_HOST: /paperless
+      OCR_QUEUE_NAME: OCR_QUEUE
+
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: admin-password
+      MINIO_ENDPOINT_HOST: minio
+      MINIO_ENDPOINT_PORT: 9000
+      MINIO_BUCKET: documents
+
+      OCR_LANGS: "eng"
+      OCR_PSM: "6"
+      OCR_DPI: "300"
+      OCR_MAXPAGES: "3"
+      OCR_TIMEOUTSECONDS: "60"
+      OCR_STORETEXT: "true"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pgrep -f 'java.*app.jar' >/dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   pgdata:
   minio-data:
