@@ -12,6 +12,7 @@
     <modules>
         <module>rest</module>
         <module>ocrworker</module>
+        <module>genaiworker</module>
     </modules>
 
 </project>

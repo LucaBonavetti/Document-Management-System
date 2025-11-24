@@ -141,6 +141,41 @@ services:
       timeout: 5s
       retries: 5
 
+  genaiworker:
+    build:
+      context: ./genaiworker
+      dockerfile: Dockerfile
+    image: paperless-genaiworker:latest
+    container_name: paperless-genaiworker
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: paperless
+      SPRING_RABBITMQ_PASSWORD: paperless
+      SPRING_RABBITMQ_VIRTUAL_HOST: /paperless
+
+      GENAI_QUEUE_NAME: GENAI_QUEUE
+
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: admin-password
+      MINIO_ENDPOINT_HOST: minio
+      MINIO_ENDPOINT_PORT: 9000
+      MINIO_BUCKET: documents
+
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health | grep UP >/dev/null" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   pgdata:
   minio-data:
