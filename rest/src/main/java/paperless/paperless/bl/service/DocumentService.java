@@ -12,4 +12,6 @@ public interface DocumentService {
     BlDocument getById(Long id);
 
     List<BlDocument> getRecent(int limit);
+
+    void updateSummary(Long documentId, String summary);
 }

@@ -96,4 +96,14 @@ public class DocumentServiceImpl implements DocumentService {
         );
         return page.stream().map(mapper::toBl).collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional
+    public void updateSummary(Long documentId, String summary) {
+        documentRepository.findById(documentId).ifPresent(ent -> {
+            ent.setSummary(summary);
+            documentRepository.save(ent);
+            log.info("Summary updated for document {}", documentId);
+        });
+    }
 }

@@ -76,4 +76,10 @@ public class DocumentController {
         List<BlDocument> items = documentService.getRecent(limit);
         return ResponseEntity.ok(mapper.toApiList(items));
     }
+
+    @PostMapping("/documents/{id}/summary")
+    public ResponseEntity<Void> updateSummary(@PathVariable Long id, @RequestBody String summary) {
+        documentService.updateSummary(id, summary);
+        return ResponseEntity.noContent().build();
+    }
 }
