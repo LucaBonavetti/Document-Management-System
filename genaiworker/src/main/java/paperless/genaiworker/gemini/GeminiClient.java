@@ -19,6 +19,19 @@ public class GeminiClient {
 
     public String summarize(String text) throws Exception {
 
+        String prompt = """
+                Summarize the following document in **clear, concise English**.
+
+                Requirements:
+                - Maximum length: **3 sentences**
+                - Maximum **350 characters**
+                - No bullet points, no lists, no markdown
+                - No intro phrases (e.g., “Here is the summary:”)
+                - Output only the summary text.
+
+                Document:
+                """ + text;
+
         String jsonBody = """
                 {
                     "contents": [
@@ -29,15 +42,16 @@ public class GeminiClient {
                         }
                     ],
                     "generationConfig": {
-                        "temperature": 0.3,
+                        "temperature": 0.2,
                         "topK": 40,
                         "topP": 0.8,
-                        "maxOutputTokens": 300
+                        "maxOutputTokens": 200
                     }
                 }
-                """.formatted(escape(text));
+                """.formatted(escape(prompt));
 
         HttpClient client = HttpClient.newHttpClient();
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(URL))
                 .header("Content-Type", "application/json")
@@ -53,7 +67,20 @@ public class GeminiClient {
                     ": " + response.body());
         }
 
-        return response.body(); // we'll parse later if needed
+        // Parse JSON to extract only the summary text
+        return extractText(response.body());
+    }
+
+    // Extracts the "text" field from Gemini's JSON response
+    private String extractText(String json) {
+        int idx = json.indexOf("\"text\":");
+        if (idx == -1) return json;
+
+        int start = json.indexOf("\"", idx + 7) + 1;
+        int end = json.indexOf("\"", start);
+
+        if (start < 0 || end < 0) return json;
+        return json.substring(start, end).replace("\\n", " ").trim();
     }
 
     private String escape(String s) {

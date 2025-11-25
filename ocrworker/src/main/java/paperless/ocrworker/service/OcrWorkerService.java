@@ -11,10 +11,12 @@ import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import paperless.ocrworker.config.MinioConfig;
 import paperless.paperless.messaging.OcrJobMessage;
+import paperless.paperless.messaging.GenAiJobMessage;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -34,6 +36,7 @@ public class OcrWorkerService {
 
     private final MinioClient minioClient;
     private final MinioConfig minioConfig;
+    private final RabbitTemplate rabbitTemplate;
 
     private static final int MINIO_MAX_ATTEMPTS = 3;
     private static final long MINIO_BACKOFF_MS = 300;
@@ -59,9 +62,13 @@ public class OcrWorkerService {
     @Value("${ocr.tesseract-cmd:}")
     private String tessCmdProp;
 
-    public OcrWorkerService(MinioClient minioClient, MinioConfig minioConfig) {
+    @Value("${genai.queue.name:GENAI_QUEUE}")
+    private String genAiQueueName;
+
+    public OcrWorkerService(MinioClient minioClient, MinioConfig minioConfig, RabbitTemplate rabbitTemplate) {
         this.minioClient = minioClient;
         this.minioConfig = minioConfig;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public void process(OcrJobMessage msg) {
@@ -74,6 +81,7 @@ public class OcrWorkerService {
             String textKey = key + ".txt";
             if (storeTextToMinio && objectExists(bucket, textKey)) {
                 log.info("Skip OCR; text already exists at '{}'", textKey);
+                sendGenAiJob(msg.getDocumentId(), textKey);
                 return;
             }
 
@@ -105,6 +113,9 @@ public class OcrWorkerService {
                 putToMinioWithRetry(bucket, textKey, bytes);
                 log.info("Stored OCR text to MinIO as '{}'", textKey);
             }
+
+            // 5) Send message to GenAI queue
+            sendGenAiJob(msg.getDocumentId(), textKey);
 
         } catch (Exception e) {
             log.error("OCR processing failed for '{}'", filename, e);
@@ -283,5 +294,15 @@ public class OcrWorkerService {
         String env = System.getenv("TESSERACT_CMD");
         if (env != null && !env.isBlank()) return env;
         return "tesseract";
+    }
+
+    private void sendGenAiJob(Long documentId, String textKey) {
+        try {
+            GenAiJobMessage genMsg = new GenAiJobMessage(documentId, textKey);
+            rabbitTemplate.convertAndSend(genAiQueueName, genMsg);
+            log.info("Sent GenAI job for document {} (text key = {})", documentId, textKey);
+        } catch (Exception ex) {
+            log.error("Failed to send GenAI job for doc {}: {}", documentId, ex.toString());
+        }
     }
 }

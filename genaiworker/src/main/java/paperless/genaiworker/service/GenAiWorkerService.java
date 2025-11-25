@@ -4,13 +4,16 @@ import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import paperless.genaiworker.config.MinioConfig;
 import paperless.genaiworker.gemini.GeminiClient;
 import paperless.paperless.messaging.GenAiJobMessage;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 @Service
 public class GenAiWorkerService {
@@ -20,11 +23,16 @@ public class GenAiWorkerService {
     private final MinioClient minio;
     private final MinioConfig minioCfg;
     private final GeminiClient gemini;
+    private final RestTemplate restTemplate;
 
-    public GenAiWorkerService(MinioClient minio, MinioConfig cfg, GeminiClient gemini) {
+    @Value("${rest.base-url:http://web:80}")
+    private String restBaseUrl;
+
+    public GenAiWorkerService(MinioClient minio, MinioConfig cfg, GeminiClient gemini, RestTemplate restTemplate) {
         this.minio = minio;
         this.minioCfg = cfg;
         this.gemini = gemini;
+        this.restTemplate = restTemplate;
     }
 
     public void process(GenAiJobMessage msg) {
@@ -42,12 +50,27 @@ public class GenAiWorkerService {
             log.info("Calling Gemini for summary (text length = {})", text.length());
             String summary = gemini.summarize(text);
 
-            log.info("SUMMARY RESPONSE:\n{}", summary);
+            if (summary != null) {
+                summary = summary.replaceAll("\\s+", " ").trim();
+                if (summary.length() > 350) {
+                    summary = summary.substring(0, 350);
+                }
+            }
 
-            // TODO: call REST server to store summary in DB
+            log.info("SUMMARY:\n{}", summary);
+
+            // Call REST API to store the summary
+            String url = restBaseUrl + "/api/documents/" + msg.getDocumentId() + "/summary";
+            log.info("Sending summary to REST service: {}", url);
+
+            restTemplate.postForEntity(
+                    url,
+                    Map.of("summary", summary),
+                    Void.class
+            );
 
         } catch (Exception e) {
-            log.error("GenAI processing failed", e);
+            log.error("GenAI processing failed for document {}", msg.getDocumentId(), e);
         }
     }
 }

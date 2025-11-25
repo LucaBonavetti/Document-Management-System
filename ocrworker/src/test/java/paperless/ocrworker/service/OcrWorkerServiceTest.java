@@ -6,6 +6,7 @@ import io.minio.StatObjectResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import paperless.ocrworker.config.MinioConfig;
 import paperless.paperless.messaging.OcrJobMessage;
@@ -31,7 +32,8 @@ class OcrWorkerServiceTest {
         minioConfig = new MinioConfig();
         ReflectionTestUtils.setField(minioConfig, "bucketName", "documents");
 
-        service = spy(new OcrWorkerService(minio, minioConfig));
+        RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
+        service = spy(new OcrWorkerService(minio, minioConfig, rabbitTemplate));
         ReflectionTestUtils.setField(service, "storeTextToMinio", true);
     }
 

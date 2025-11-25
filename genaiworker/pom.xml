@@ -56,6 +56,12 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
+        <!-- HTTP REST client (RestTemplate) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+        </dependency>
+
         <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
