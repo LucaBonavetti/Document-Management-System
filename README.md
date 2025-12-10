@@ -18,7 +18,9 @@ It now includes a simple **HTML5/CSS/JS web frontend** served by **NGINX**.
 ## Use-Case
 
 Document Tags & Collections
+
 Goal:
+
 Users can group documents into Collections and add Tags.
 
 ```bash
