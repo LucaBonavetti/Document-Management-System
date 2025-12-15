@@ -19,9 +19,7 @@ It now includes a simple **HTML5/CSS/JS web frontend** served by **NGINX**.
 
 Document Tags & Collections
 
-Goal:
-
-Users can group documents into Collections and add Tags.
+Goal: Users can group documents into Collections and add Tags.
 
 ```bash
 docker compose up -d --build
