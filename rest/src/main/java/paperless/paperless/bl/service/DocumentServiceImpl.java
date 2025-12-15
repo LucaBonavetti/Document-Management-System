@@ -2,6 +2,8 @@ package paperless.paperless.bl.service;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
@@ -15,7 +17,6 @@ import paperless.paperless.infrastructure.FileStorageService;
 import paperless.paperless.messaging.OcrJobMessage;
 import paperless.paperless.messaging.OcrProducer;
 
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +24,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class DocumentServiceImpl implements DocumentService {
+
+    private static final Logger log = LoggerFactory.getLogger(DocumentServiceImpl.class);
 
     private final DocumentRepository documentRepository;
     private final FileStorageService fileStorageService;
@@ -45,15 +48,16 @@ public class DocumentServiceImpl implements DocumentService {
     @Override
     @Transactional
     public BlDocument saveDocument(BlUploadRequest request, byte[] data) throws Exception {
-        Set<jakarta.validation.ConstraintViolation<BlUploadRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<BlUploadRequest>> violations = validator.validate(request);
         if (!violations.isEmpty()) {
-            String msg = violations.stream().map(ConstraintViolation::getMessage).collect(Collectors.joining(", "));
+            String msg = violations.stream()
+                    .map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining(", "));
             throw new IllegalArgumentException(msg);
         }
 
-        // Upload to MinIO
-        String objectKey = fileStorageService.uploadFile(filename, bytes);
-        log.info("File '{}' uploaded to MinIO with key '{}'", filename, objectKey);
+        String objectKey = fileStorageService.uploadFile(request.getFilename(), data);
+        log.info("File '{}' uploaded to MinIO with key '{}'", request.getFilename(), objectKey);
 
         DocumentEntity entity = new DocumentEntity();
         entity.setFilename(request.getFilename());
@@ -64,18 +68,15 @@ public class DocumentServiceImpl implements DocumentService {
 
         DocumentEntity saved = documentRepository.save(entity);
 
-        OcrJobMessage job = new OcrJobMessage();
-        job.setDocumentId(saved.getId());
-        job.setFilename(saved.getFilename());
-        job.setContentType(saved.getContentType());
-        job.setSize(saved.getSize());
-        job.setStoredPath(path.toAbsolutePath().toString());
-        job.setUploadedAt(saved.getUploadedAt());
-
-        // Send OCR job
-        var msg = new OcrJobMessage(saved.getId(), saved.getFilename(), saved.getContentType(), saved.getSize(),
-                objectKey, saved.getUploadedAt());
-        ocrProducer.send(msg);
+        OcrJobMessage job = new OcrJobMessage(
+                saved.getId(),
+                saved.getFilename(),
+                saved.getContentType(),
+                saved.getSize(),
+                objectKey,
+                saved.getUploadedAt()
+        );
+        ocrProducer.send(job);
 
         return mapper.toBl(saved);
     }
@@ -94,5 +95,15 @@ public class DocumentServiceImpl implements DocumentService {
                 PageRequest.of(0, pageSize, Sort.by(Sort.Direction.DESC, "uploadedAt"))
         );
         return page.stream().map(mapper::toBl).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void updateSummary(Long documentId, String summary) {
+        documentRepository.findById(documentId).ifPresent(ent -> {
+            ent.setSummary(summary);
+            documentRepository.save(ent);
+            log.info("Summary updated for document {}", documentId);
+        });
     }
 }

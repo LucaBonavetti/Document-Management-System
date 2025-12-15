@@ -80,9 +80,17 @@ components:
     Document:
       type: object
       properties:
-        id: { type: integer, format: int64 }
-        filename: { type: string }
-        contentType: { type: string }
-        size: { type: integer, format: int64 }
-        uploadedAt: { type: string, format: date-time }
+        id:
+          type: integer
+          format: int64
+        filename:
+          type: string
+        contentType:
+          type: string
+        size:
+          type: integer
+          format: int64
+        uploadedAt:
+          type: string
+          format: date-time
       required: [id, filename, contentType, size, uploadedAt]
