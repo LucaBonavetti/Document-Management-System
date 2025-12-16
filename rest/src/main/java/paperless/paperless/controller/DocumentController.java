@@ -12,6 +12,7 @@ import paperless.paperless.bl.model.BlDocument;
 import paperless.paperless.bl.model.BlUploadRequest;
 import paperless.paperless.bl.service.DocumentService;
 import paperless.paperless.model.Document;
+import paperless.paperless.search.SearchService;
 
 import java.net.URI;
 import java.util.List;
@@ -22,13 +23,15 @@ public class DocumentController {
 
     private final DocumentService documentService;
     private final DocumentMapper mapper;
+    private final SearchService searchService;
 
     // 50 MB soft guard (in addition to nginx client_max_body_size)
     private static final long MAX_UPLOAD_BYTES = DataSize.ofMegabytes(50).toBytes();
 
-    public DocumentController(DocumentService documentService, DocumentMapper mapper) {
+    public DocumentController(DocumentService documentService, DocumentMapper mapper, SearchService searchService) {
         this.documentService = documentService;
         this.mapper = mapper;
+        this.searchService = searchService;
     }
 
     @PostMapping(path = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -77,9 +80,9 @@ public class DocumentController {
         return ResponseEntity.ok(mapper.toApiList(items));
     }
 
-    @PostMapping("/documents/{id}/summary")
-    public ResponseEntity<Void> updateSummary(@PathVariable Long id, @RequestBody String summary) {
-        documentService.updateSummary(id, summary);
-        return ResponseEntity.noContent().build();
+    @GetMapping(path = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<Document>> search(@RequestParam("q") String query,
+                                                 @RequestParam(name = "limit", defaultValue = "10") int limit) {
+        return ResponseEntity.ok(searchService.search(query, limit));
     }
 }

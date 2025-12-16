@@ -1,6 +1,7 @@
 package paperless.paperless.model;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 public class Document {
     private Long id;
@@ -8,7 +9,8 @@ public class Document {
     private String contentType;
     private long size;
     private OffsetDateTime uploadedAt;
-    private String summary;
+    private String category;
+    private List<String> tags;
 
     public Document() {}
 
@@ -35,6 +37,9 @@ public class Document {
     public OffsetDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(OffsetDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
 
-    public String getSummary() { return summary; }
-    public void setSummary(String summary) { this.summary = summary; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+
+    public List<String> getTags() { return tags; }
+    public void setTags(List<String> tags) { this.tags = tags; }
 }

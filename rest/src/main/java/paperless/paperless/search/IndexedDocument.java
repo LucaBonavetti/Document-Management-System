@@ -1,26 +1,16 @@
-package paperless.paperless.bl.model;
-
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+package paperless.paperless.search;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 
-public class BlDocument {
+public class IndexedDocument {
     private Long id;
-
-    @NotBlank(message = "filename must not be blank")
     private String filename;
-
     private String contentType;
-
-    @Positive(message = "size must be > 0")
     private long size;
-
-    @NotNull(message = "uploadedAt must not be null")
     private OffsetDateTime uploadedAt;
 
+    private String content;          // OCR text or fallback
     private String category;
     private List<String> tags;
 
@@ -38,6 +28,9 @@ public class BlDocument {
 
     public OffsetDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(OffsetDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
+
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }

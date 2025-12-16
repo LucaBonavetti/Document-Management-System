@@ -1,31 +1,22 @@
-package paperless.paperless.bl.model;
-
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+package paperless.paperless.messaging;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 
-public class BlDocument {
-    private Long id;
-
-    @NotBlank(message = "filename must not be blank")
+public class IndexJobMessage {
+    private Long documentId;
     private String filename;
-
     private String contentType;
-
-    @Positive(message = "size must be > 0")
     private long size;
-
-    @NotNull(message = "uploadedAt must not be null")
     private OffsetDateTime uploadedAt;
+    private String storedPath;
 
+    private String textContent; // OCR result or fallback
     private String category;
     private List<String> tags;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getDocumentId() { return documentId; }
+    public void setDocumentId(Long documentId) { this.documentId = documentId; }
 
     public String getFilename() { return filename; }
     public void setFilename(String filename) { this.filename = filename; }
@@ -38,6 +29,12 @@ public class BlDocument {
 
     public OffsetDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(OffsetDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
+
+    public String getStoredPath() { return storedPath; }
+    public void setStoredPath(String storedPath) { this.storedPath = storedPath; }
+
+    public String getTextContent() { return textContent; }
+    public void setTextContent(String textContent) { this.textContent = textContent; }
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
