@@ -11,7 +11,7 @@ public class IndexProducer {
     private final String queue;
 
     public IndexProducer(RabbitTemplate template,
-                         @Value("${INDEX_QUEUE_NAME:index-jobs}") String queue) {
+                         @Value("${INDEX_QUEUE_NAME:INDEX_QUEUE}") String queue) {
         this.template = template;
         this.queue = queue;
     }
