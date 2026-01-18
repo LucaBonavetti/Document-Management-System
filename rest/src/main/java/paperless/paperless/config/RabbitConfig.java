@@ -41,20 +41,13 @@ public class RabbitConfig {
                                          Jackson2JsonMessageConverter messageConverter) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
         template.setMessageConverter(messageConverter);
+        template.setMandatory(true); // makes unroutable messages visible
+        template.setReturnsCallback(ret -> System.err.println(
+                "UNROUTABLE: code=" + ret.getReplyCode()
+                        + " text=" + ret.getReplyText()
+                        + " exch='" + ret.getExchange()
+                        + "' key='" + ret.getRoutingKey() + "'"
+        ));
         return template;
-    }
-
-    @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory cf, Jackson2JsonMessageConverter conv) {
-        RabbitTemplate rt = new RabbitTemplate(cf);
-        rt.setMessageConverter(conv);
-        rt.setMandatory(true); // make unroutable messages visible
-        rt.setReturnsCallback(ret -> {
-            System.err.println("UNROUTABLE: code=" + ret.getReplyCode()
-                    + " text=" + ret.getReplyText()
-                    + " exch='" + ret.getExchange()
-                    + "' key='" + ret.getRoutingKey() + "'");
-        });
-        return rt;
     }
 }

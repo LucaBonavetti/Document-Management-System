@@ -2,6 +2,8 @@ package paperless.paperless.bl.service;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +25,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class DocumentServiceImpl implements DocumentService {
+
+    private static final Logger log = LoggerFactory.getLogger(DocumentServiceImpl.class);
 
     private final DocumentRepository documentRepository;
     private final FileStorageService fileStorageService;
@@ -47,35 +51,38 @@ public class DocumentServiceImpl implements DocumentService {
     public BlDocument saveDocument(BlUploadRequest request, byte[] data) throws Exception {
         Set<jakarta.validation.ConstraintViolation<BlUploadRequest>> violations = validator.validate(request);
         if (!violations.isEmpty()) {
-            String msg = violations.stream().map(ConstraintViolation::getMessage).collect(Collectors.joining(", "));
-            throw new IllegalArgumentException(msg);
+            String validationMsg = violations.stream().map(ConstraintViolation::getMessage).collect(Collectors.joining(", "));
+            throw new IllegalArgumentException(validationMsg);
+        }
+
+        if (data == null || data.length == 0) {
+            throw new IllegalArgumentException("file must not be empty");
         }
 
         // Upload to MinIO
-        String objectKey = fileStorageService.uploadFile(filename, bytes);
+        String filename = request.getFilename();
+        String objectKey = fileStorageService.uploadFile(filename, data);
         log.info("File '{}' uploaded to MinIO with key '{}'", filename, objectKey);
 
         DocumentEntity entity = new DocumentEntity();
         entity.setFilename(request.getFilename());
         entity.setContentType(request.getContentType());
-        entity.setSize(request.getSize());
+        entity.setSize(request.getSize() > 0 ? request.getSize() : data.length);
         entity.setUploadedAt(OffsetDateTime.now());
         entity.setObjectKey(objectKey);
 
         DocumentEntity saved = documentRepository.save(entity);
 
-        OcrJobMessage job = new OcrJobMessage();
-        job.setDocumentId(saved.getId());
-        job.setFilename(saved.getFilename());
-        job.setContentType(saved.getContentType());
-        job.setSize(saved.getSize());
-        job.setStoredPath(path.toAbsolutePath().toString());
-        job.setUploadedAt(saved.getUploadedAt());
+        OcrJobMessage ocrMsg = new OcrJobMessage(
+                saved.getId(),
+                saved.getFilename(),
+                saved.getContentType(),
+                saved.getSize(),
+                objectKey,
+                saved.getUploadedAt()
+        );
 
-        // Send OCR job
-        var msg = new OcrJobMessage(saved.getId(), saved.getFilename(), saved.getContentType(), saved.getSize(),
-                objectKey, saved.getUploadedAt());
-        ocrProducer.send(msg);
+        ocrProducer.send(ocrMsg);
 
         return mapper.toBl(saved);
     }
