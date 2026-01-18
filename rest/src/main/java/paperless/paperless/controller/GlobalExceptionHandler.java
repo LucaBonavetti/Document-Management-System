@@ -37,8 +37,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("status", HttpStatus.BAD_REQUEST.value());
-        body.put("error", "Bad Request");
-        body.put("messages", List.of(ex.getMessage() == null ? "Invalid input." : ex.getMessage()));
+        body.put("error", "Bad request");
+        body.put("messages", List.of(ex.getMessage()));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
@@ -46,9 +46,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        body.put("error", "Internal Server Error");
+        body.put("error", "Internal server error");
         body.put("messages", List.of("An unexpected error occurred."));
-        // Log the exception with stack trace in your logs; don't expose details to clients.
+        // Do NOT expose internal stack traces to clients; log in app logs instead.
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

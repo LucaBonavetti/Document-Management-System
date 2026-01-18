@@ -13,7 +13,6 @@ import paperless.paperless.bl.model.BlUploadRequest;
 import paperless.paperless.bl.service.DocumentService;
 import paperless.paperless.model.Document;
 
-import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -51,10 +50,8 @@ public class DocumentController {
         BlDocument saved = documentService.saveDocument(req, file.getBytes());
         Document dto = mapper.toApi(saved);
 
-        URI location = uriBuilder
-                .path("/api/documents/{id}")
-                .buildAndExpand(saved.getId())
-                .toUri();
+        var location = uriBuilder.path("/api/documents/{id}")
+                .build(saved.getId());
 
         return ResponseEntity
                 .created(location)
@@ -75,11 +72,5 @@ public class DocumentController {
     public ResponseEntity<List<Document>> list(@RequestParam(name = "limit", defaultValue = "10") int limit) {
         List<BlDocument> items = documentService.getRecent(limit);
         return ResponseEntity.ok(mapper.toApiList(items));
-    }
-
-    @PostMapping("/documents/{id}/summary")
-    public ResponseEntity<Void> updateSummary(@PathVariable Long id, @RequestBody String summary) {
-        documentService.updateSummary(id, summary);
-        return ResponseEntity.noContent().build();
     }
 }

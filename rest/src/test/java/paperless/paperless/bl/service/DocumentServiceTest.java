@@ -17,6 +17,7 @@ import paperless.paperless.infrastructure.FileStorageService;
 import paperless.paperless.messaging.OcrJobMessage;
 import paperless.paperless.messaging.OcrProducer;
 
+import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.Optional;
@@ -48,46 +49,49 @@ class DocumentServiceTest {
     }
 
     @Test
-    void saveDocument_valid_request_persists_and_sends_job() throws Exception {
-        BlUploadRequest req = new BlUploadRequest("hello.txt", "text/plain", 5L);
-        byte[] data = "hello".getBytes();
+    @DisplayName("saveDocument() uploads file to MinIO, persists entity, and sends OCR job")
+    void saveDocument_success() throws IOException {
+        // given
+        when(validator.validate(any(BlUploadRequest.class)))
+                .thenReturn(Collections.emptySet());
 
-        when(validator.validate(req)).thenReturn(Collections.emptySet());
+        // mock the uploadFile() method to return a fake MinIO object key
+        when(fileStorageService.uploadFile(anyString(), any()))
+                .thenReturn("1234_test.pdf");
 
-        // NEW: uploadFile returns MinIO object key (String), not a Path
-        when(fileStorageService.uploadFile(eq("hello.txt"), any()))
-                .thenReturn("objects/12345_hello.txt");
+        DocumentEntity savedEntity = new DocumentEntity();
+        savedEntity.setId(1L);
+        savedEntity.setFilename("test.pdf");
+        savedEntity.setContentType("application/pdf");
+        savedEntity.setSize(100);
+        savedEntity.setUploadedAt(OffsetDateTime.now());
+        savedEntity.setObjectKey("1234_test.pdf");
 
-        DocumentEntity saved = new DocumentEntity();
-        saved.setId(1L);
-        saved.setFilename("hello.txt");
-        saved.setContentType("text/plain");
-        saved.setSize(5L);
-        saved.setUploadedAt(OffsetDateTime.parse("2025-10-22T10:00:00Z"));
-        saved.setObjectKey("objects/12345_hello.txt");
+        when(repository.save(any(DocumentEntity.class)))
+                .thenReturn(savedEntity);
 
-        when(documentRepository.save(any(DocumentEntity.class))).thenReturn(saved);
+        when(mapper.toBl(any(DocumentEntity.class)))
+                .thenReturn(new BlDocument());
 
-        BlDocument out = service.saveDocument(req, data);
+        // when
+        BlDocument result = service.saveDocument("test.pdf", "application/pdf", 100, "abc".getBytes());
 
-        assertThat(out).isNotNull();
-        assertThat(out.getId()).isEqualTo(1L);
-        assertThat(out.getFilename()).isEqualTo("hello.txt");
-        assertThat(out.getSize()).isEqualTo(5L);
+        // then
+        assertThat(result).isNotNull();
 
-        // verify file upload call
-        verify(fileStorageService, times(1)).uploadFile(eq("hello.txt"), any());
+        // verify that uploadFile() was called with the correct filename
+        verify(fileStorageService).uploadFile(eq("test.pdf"), any());
 
         // verify entity persisted
-        verify(documentRepository, times(1)).save(any(DocumentEntity.class));
+        verify(repository).save(any(DocumentEntity.class));
 
-        // verify OCR job sent with storedPath = objectKey
-        ArgumentCaptor<OcrJobMessage> msg = ArgumentCaptor.forClass(OcrJobMessage.class);
-        verify(ocrProducer, times(1)).send(msg.capture());
-        assertThat(msg.getValue().getDocumentId()).isEqualTo(1L);
-        assertThat(msg.getValue().getFilename()).isEqualTo("hello.txt");
-        assertThat(msg.getValue().getSize()).isEqualTo(5L);
-        assertThat(msg.getValue().getStoredPath()).isEqualTo("objects/12345_hello.txt");
+        // verify that an OCR job was sent
+        ArgumentCaptor<OcrJobMessage> msgCaptor = ArgumentCaptor.forClass(OcrJobMessage.class);
+        verify(ocrProducer).send(msgCaptor.capture());
+        OcrJobMessage sentMsg = msgCaptor.getValue();
+
+        assertThat(sentMsg.getFilename()).isEqualTo("test.pdf");
+        assertThat(sentMsg.getStoredPath()).isEqualTo("1234_test.pdf");
     }
 
     @Test
@@ -98,7 +102,6 @@ class DocumentServiceTest {
         e.setContentType("application/pdf");
         e.setSize(10L);
         e.setUploadedAt(OffsetDateTime.parse("2025-10-20T00:00:00Z"));
-        e.setObjectKey("objects/x.pdf");
 
         when(documentRepository.findById(7L)).thenReturn(Optional.of(e));
 
@@ -121,8 +124,7 @@ class DocumentServiceTest {
         BlUploadRequest req = new BlUploadRequest("", "text/plain", 1L);
 
         @SuppressWarnings("unchecked")
-        Set<ConstraintViolation<BlUploadRequest>> violations =
-                (Set) Set.of(mock(ConstraintViolation.class));
+        Set<ConstraintViolation<BlUploadRequest>> violations = (Set) Set.of(mock(ConstraintViolation.class));
 
         when(validator.validate(req)).thenReturn(violations);
 

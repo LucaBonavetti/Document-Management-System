@@ -26,9 +26,6 @@ public class DocumentEntity {
     @Column(name = "object_key")
     private String objectKey;
 
-    @Column(name = "summary", columnDefinition = "TEXT")
-    private String summary;
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -46,7 +43,4 @@ public class DocumentEntity {
 
     public String getObjectKey() { return objectKey; }
     public void setObjectKey(String objectKey) { this.objectKey = objectKey; }
-
-    public String getSummary() { return summary; }
-    public void setSummary(String summary) { this.summary = summary; }
 }

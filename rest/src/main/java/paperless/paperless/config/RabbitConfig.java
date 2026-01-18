@@ -3,6 +3,7 @@ package paperless.paperless.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -18,41 +19,42 @@ import org.springframework.beans.factory.annotation.Value;
 public class RabbitConfig {
 
     @Bean
-    public Queue ocrQueue(
-            @org.springframework.beans.factory.annotation.Value("${ocr.queue.name:${OCR_QUEUE_NAME:OCR_QUEUE}}")
-            String name) {
-        return new Queue(name, true);
+    public Queue ocrQueue(@Value("${OCR_QUEUE_NAME:ocr-jobs}") String queueName) {
+        return new Queue(queueName, true);
     }
 
     @Bean
-    public RabbitAdmin amqpAdmin(ConnectionFactory cf) {
-        RabbitAdmin admin = new RabbitAdmin(cf);
-        admin.setAutoStartup(false); // prevents auto-declare of the Queue bean
-        return admin;
+    public AmqpAdmin amqpAdmin(ConnectionFactory connectionFactory) {
+        return new RabbitAdmin(connectionFactory);
     }
 
     @Bean
-    public ObjectMapper rabbitObjectMapper() {
-        return new ObjectMapper()
-                .registerModule(new JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    public Jackson2JsonMessageConverter jackson2JsonMessageConverter() {
+        ObjectMapper mapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return new Jackson2JsonMessageConverter(mapper);
     }
 
     @Bean
-    public Jackson2JsonMessageConverter jsonMessageConverter(ObjectMapper rabbitObjectMapper) {
-        return new Jackson2JsonMessageConverter(rabbitObjectMapper);
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
+                                         Jackson2JsonMessageConverter messageConverter) {
+        RabbitTemplate template = new RabbitTemplate(connectionFactory);
+        template.setMessageConverter(messageConverter);
+        return template;
     }
 
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory cf, Jackson2JsonMessageConverter conv) {
         RabbitTemplate rt = new RabbitTemplate(cf);
         rt.setMessageConverter(conv);
-        rt.setMandatory(true);
-        rt.setReturnsCallback(ret -> System.err.println(
-                "UNROUTABLE: code=" + ret.getReplyCode()
-                        + " text=" + ret.getReplyText()
-                        + " exch='" + ret.getExchange()
-                        + "' key='" + ret.getRoutingKey() + "'"));
+        rt.setMandatory(true); // make unroutable messages visible
+        rt.setReturnsCallback(ret -> {
+            System.err.println("UNROUTABLE: code=" + ret.getReplyCode()
+                    + " text=" + ret.getReplyText()
+                    + " exch='" + ret.getExchange()
+                    + "' key='" + ret.getRoutingKey() + "'");
+        });
         return rt;
     }
 }

@@ -8,7 +8,6 @@ public class Document {
     private String contentType;
     private long size;
     private OffsetDateTime uploadedAt;
-    private String summary;
 
     public Document() {}
 
@@ -34,7 +33,4 @@ public class Document {
 
     public OffsetDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(OffsetDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
-
-    public String getSummary() { return summary; }
-    public void setSummary(String summary) { this.summary = summary; }
 }

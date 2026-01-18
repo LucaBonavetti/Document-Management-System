@@ -20,8 +20,6 @@ public class BlDocument {
     @NotNull(message = "uploadedAt must not be null")
     private OffsetDateTime uploadedAt;
 
-    private String summary;
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -36,7 +34,4 @@ public class BlDocument {
 
     public OffsetDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(OffsetDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
-
-    public String getSummary() { return summary; }
-    public void setSummary(String summary) { this.summary = summary; }
 }

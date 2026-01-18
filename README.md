@@ -15,14 +15,7 @@ It now includes a simple **HTML5/CSS/JS web frontend** served by **NGINX**.
 
 ### Run everything (web + app + db) via Docker Compose
 
-## Use-Case
-
-Document Tags & Collections
-
-Goal: Users can group documents into Collections and add Tags.
-
 ```bash
 docker compose up -d --build
 # Web UI: http://localhost:8080
 # API:    http://localhost:8081 (also proxied under /api by NGINX)
-
