@@ -48,21 +48,24 @@ public class DocumentServiceImpl implements DocumentService {
     @Override
     @Transactional
     public BlDocument saveDocument(BlUploadRequest request, byte[] data) throws Exception {
-        Set<ConstraintViolation<BlUploadRequest>> violations = validator.validate(request);
+        Set<jakarta.validation.ConstraintViolation<BlUploadRequest>> violations = validator.validate(request);
         if (!violations.isEmpty()) {
-            String msg = violations.stream()
-                    .map(ConstraintViolation::getMessage)
-                    .collect(Collectors.joining(", "));
-            throw new IllegalArgumentException(msg);
+            String validationMsg = violations.stream().map(ConstraintViolation::getMessage).collect(Collectors.joining(", "));
+            throw new IllegalArgumentException(validationMsg);
         }
 
+        if (data == null || data.length == 0) {
+            throw new IllegalArgumentException("file must not be empty");
+        }
+
+        // Upload to MinIO
         String objectKey = fileStorageService.uploadFile(request.getFilename(), data);
         log.info("File '{}' uploaded to MinIO with key '{}'", request.getFilename(), objectKey);
 
         DocumentEntity entity = new DocumentEntity();
         entity.setFilename(request.getFilename());
         entity.setContentType(request.getContentType());
-        entity.setSize(request.getSize());
+        entity.setSize(request.getSize() > 0 ? request.getSize() : data.length);
         entity.setUploadedAt(OffsetDateTime.now());
         entity.setObjectKey(objectKey);
 
