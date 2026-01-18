@@ -5,8 +5,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import paperless.ocrworker.config.MinioConfig;
+import paperless.ocrworker.messaging.OcrResultProducer;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -29,8 +29,8 @@ class OcrWorkerServiceLiteTest {
         // real service with mocks (won't call them in these tests)
         MinioClient minio = Mockito.mock(MinioClient.class);
         MinioConfig cfg = Mockito.mock(MinioConfig.class);
-        RabbitTemplate rabbitTemplate = Mockito.mock(RabbitTemplate.class);
-        svc = new OcrWorkerService(minio, cfg, rabbitTemplate);
+        OcrResultProducer producer = Mockito.mock(OcrResultProducer.class);
+        svc = new OcrWorkerService(minio, cfg, producer);
 
         mTesseractCmd = OcrWorkerService.class.getDeclaredMethod("tesseractCmd");
         mTesseractCmd.setAccessible(true);

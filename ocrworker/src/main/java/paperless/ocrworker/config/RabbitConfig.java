@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitConfig {
 
-    @Bean
+    @Bean(name = "ocrQueue")
     public Queue ocrQueue(@org.springframework.beans.factory.annotation.Value("${ocr.queue.name}") String name) {
         return new Queue(name, true, false, false, java.util.Map.of(
                 "x-dead-letter-exchange", "",
@@ -37,6 +37,11 @@ public class RabbitConfig {
         return new Queue(name + "_DLQ", true);
     }
 
+    @Bean(name = "ocrResultQueue")
+    public Queue ocrResultQueue(@org.springframework.beans.factory.annotation.Value("${ocr.result.queue.name}") String name) {
+        return new Queue(name, true);
+    }
+
     @Bean
     public AmqpAdmin amqpAdmin(ConnectionFactory cf) {
         RabbitAdmin admin = new RabbitAdmin(cf);
@@ -54,6 +59,14 @@ public class RabbitConfig {
     @Bean
     public Jackson2JsonMessageConverter jsonMessageConverter(ObjectMapper rabbitObjectMapper) {
         return new Jackson2JsonMessageConverter(rabbitObjectMapper);
+    }
+
+    @Bean
+    public RabbitTemplate rabbitTemplate(ConnectionFactory cf, Jackson2JsonMessageConverter conv) {
+        RabbitTemplate rt = new RabbitTemplate(cf);
+        rt.setMessageConverter(conv);
+        rt.setMandatory(true);
+        return rt;
     }
 
     @Bean

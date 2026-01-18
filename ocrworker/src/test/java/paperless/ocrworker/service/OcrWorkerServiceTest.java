@@ -6,9 +6,9 @@ import io.minio.StatObjectResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import paperless.ocrworker.config.MinioConfig;
+import paperless.ocrworker.messaging.OcrResultProducer;
 import paperless.paperless.messaging.OcrJobMessage;
 
 import java.io.ByteArrayInputStream;
@@ -16,24 +16,30 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 class OcrWorkerServiceTest {
 
     private MinioClient minio;
     private MinioConfig minioConfig;
+    private OcrResultProducer resultProducer;
     private OcrWorkerService service;
 
     @BeforeEach
     void setup() {
         minio = mock(MinioClient.class, withSettings().lenient());
+        resultProducer = mock(OcrResultProducer.class);
+
         minioConfig = new MinioConfig();
         ReflectionTestUtils.setField(minioConfig, "bucketName", "documents");
 
-        RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
-        service = spy(new OcrWorkerService(minio, minioConfig, rabbitTemplate));
+        resultProducer = mock(OcrResultProducer.class, withSettings().lenient());
+
+        service = spy(new OcrWorkerService(minio, minioConfig, resultProducer));
         ReflectionTestUtils.setField(service, "storeTextToMinio", true);
     }
 
@@ -42,8 +48,8 @@ class OcrWorkerServiceTest {
     }
 
     @Test
-    void process_pdf_happyPath_writesTextNextToOriginal() throws Exception {
-        var m = msg(1L, "doc.pdf", "folder/doc.pdf");
+    void process_pdf_happyPath_writesTextNextToOriginal_andPublishesResult() throws Exception {
+        OcrJobMessage m = msg(1L, "doc.pdf", "folder/doc.pdf");
 
         // Force objectExists(...) = false (treat statObject failure as “not exists”)
         doThrow(new RuntimeException("stat fail")).when(minio).statObject(any());
@@ -60,17 +66,18 @@ class OcrWorkerServiceTest {
         ArgumentCaptor<PutObjectArgs> cap = ArgumentCaptor.forClass(PutObjectArgs.class);
         verify(minio, times(1)).putObject(cap.capture());
         assertEquals("folder/doc.pdf.txt", cap.getValue().object());
+        verify(resultProducer, times(1)).send(any());
     }
 
     @Test
-    void process_image_happyPath_writesTextNextToOriginal() throws Exception {
-        var m = msg(2L, "scan.png", "inbox/scan.png");
+    void process_image_happyPath_writesTextNextToOriginal_andPublishesResult() throws Exception {
+        OcrJobMessage m = msg(2L, "scan.png", "inbox/scan.png");
 
         // Force objectExists(...) = false
         doThrow(new RuntimeException("stat fail")).when(minio).statObject(any());
 
         // Stub the seam used by the private retry helper
-        InputStream imgBytes = new ByteArrayInputStream(new byte[]{1,2,3,4});
+        InputStream imgBytes = new ByteArrayInputStream(new byte[]{1, 2, 3, 4});
         doReturn(imgBytes).when(service).fetchFromMinio("documents", "inbox/scan.png");
 
         // Avoid real Tesseract
@@ -81,11 +88,12 @@ class OcrWorkerServiceTest {
         ArgumentCaptor<PutObjectArgs> cap = ArgumentCaptor.forClass(PutObjectArgs.class);
         verify(minio, times(1)).putObject(cap.capture());
         assertEquals("inbox/scan.png.txt", cap.getValue().object());
+        verify(resultProducer, times(1)).send(any());
     }
 
     @Test
-    void process_skips_whenTextAlreadyExists() throws Exception {
-        var m = msg(3L, "anything.pdf", "existing/anything.pdf");
+    void process_skips_whenTextAlreadyExists_butPublishesResult() throws Exception {
+        OcrJobMessage m = msg(3L, "anything.pdf", "existing/anything.pdf");
 
         // Make objectExists(...) => true by returning a dummy StatObjectResponse
         when(minio.statObject(any())).thenReturn(mock(StatObjectResponse.class));
@@ -95,5 +103,6 @@ class OcrWorkerServiceTest {
         // If skipped, we neither download nor write
         verify(service, never()).fetchFromMinio(anyString(), anyString());
         verify(minio, never()).putObject(any(PutObjectArgs.class));
+        verify(resultProducer, times(1)).send(any());
     }
 }
