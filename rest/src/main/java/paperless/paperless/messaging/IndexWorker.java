@@ -16,7 +16,7 @@ public class IndexWorker {
         this.indexingService = indexingService;
     }
 
-    @RabbitListener(queues = "${INDEX_QUEUE_NAME:INDEX_QUEUE}")
+    @RabbitListener(queues = "${INDEX_QUEUE_NAME:index-jobs}")
     public void handle(IndexJobMessage msg) {
         try {
             if (msg == null) return;

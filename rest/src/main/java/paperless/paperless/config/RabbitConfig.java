@@ -25,7 +25,7 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Queue indexQueue(@Value("${INDEX_QUEUE_NAME:INDEX_QUEUE}") String queueName) {
+    public Queue indexQueue(@Value("${INDEX_QUEUE_NAME:index-jobs}") String queueName) {
         return new Queue(queueName, true);
     }
 
