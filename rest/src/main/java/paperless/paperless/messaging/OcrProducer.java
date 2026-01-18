@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,7 +15,7 @@ public class OcrProducer {
     private final RabbitTemplate rabbitTemplate;
     private final Queue ocrQueue;
 
-    public OcrProducer(RabbitTemplate rabbitTemplate, Queue ocrQueue) {
+    public OcrProducer(RabbitTemplate rabbitTemplate, @Qualifier("ocrQueue") Queue ocrQueue) {
         this.rabbitTemplate = rabbitTemplate;
         this.ocrQueue = ocrQueue;
     }

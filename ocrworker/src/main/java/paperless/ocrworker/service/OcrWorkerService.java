@@ -14,7 +14,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import paperless.ocrworker.config.MinioConfig;
+import paperless.ocrworker.messaging.OcrResultProducer;
 import paperless.paperless.messaging.OcrJobMessage;
+import paperless.paperless.messaging.OcrResultMessage;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -26,6 +28,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.time.OffsetDateTime;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -34,6 +37,7 @@ public class OcrWorkerService {
 
     private final MinioClient minioClient;
     private final MinioConfig minioConfig;
+    private final OcrResultProducer resultProducer;
 
     private static final int MINIO_MAX_ATTEMPTS = 3;
     private static final long MINIO_BACKOFF_MS = 300;
@@ -59,9 +63,10 @@ public class OcrWorkerService {
     @Value("${ocr.tesseract-cmd:}")
     private String tessCmdProp;
 
-    public OcrWorkerService(MinioClient minioClient, MinioConfig minioConfig) {
+    public OcrWorkerService(MinioClient minioClient, MinioConfig minioConfig, OcrResultProducer resultProducer) {
         this.minioClient = minioClient;
         this.minioConfig = minioConfig;
+        this.resultProducer = resultProducer;
     }
 
     public void process(OcrJobMessage msg) {
@@ -72,8 +77,11 @@ public class OcrWorkerService {
         Path temp = null;
         try {
             String textKey = key + ".txt";
+
+            // If text already exists, we still publish a result message (idempotent indexing).
             if (storeTextToMinio && objectExists(bucket, textKey)) {
                 log.info("Skip OCR; text already exists at '{}'", textKey);
+                resultProducer.send(new OcrResultMessage(msg.getDocumentId(), key, textKey, OffsetDateTime.now()));
                 return;
             }
 
@@ -100,11 +108,19 @@ public class OcrWorkerService {
             log.info("OCR result for '{}' (first 400 chars):\n{}", filename, preview);
 
             // 4) Store .txt next to original
-            if (storeTextToMinio && text != null) {
+            if (!storeTextToMinio) {
+                log.warn("ocr.storeText=false, not storing OCR text and not publishing result message (needs textKey).");
+                return;
+            }
+
+            if (text != null) {
                 byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
                 putToMinioWithRetry(bucket, textKey, bytes);
                 log.info("Stored OCR text to MinIO as '{}'", textKey);
             }
+
+            // 5) Publish OCR result
+            resultProducer.send(new OcrResultMessage(msg.getDocumentId(), key, textKey, OffsetDateTime.now()));
 
         } catch (Exception e) {
             log.error("OCR processing failed for '{}'", filename, e);

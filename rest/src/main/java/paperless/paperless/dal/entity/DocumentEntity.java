@@ -26,6 +26,15 @@ public class DocumentEntity {
     @Column(name = "object_key")
     private String objectKey;
 
+    @Column(name = "ocr_text_key")
+    private String ocrTextKey;
+
+    @Column(name = "ocr_processed_at")
+    private OffsetDateTime ocrProcessedAt;
+
+    @Column(name = "ocr_indexed_at")
+    private OffsetDateTime ocrIndexedAt;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -43,4 +52,13 @@ public class DocumentEntity {
 
     public String getObjectKey() { return objectKey; }
     public void setObjectKey(String objectKey) { this.objectKey = objectKey; }
+
+    public String getOcrTextKey() { return ocrTextKey; }
+    public void setOcrTextKey(String ocrTextKey) { this.ocrTextKey = ocrTextKey; }
+
+    public OffsetDateTime getOcrProcessedAt() { return ocrProcessedAt; }
+    public void setOcrProcessedAt(OffsetDateTime ocrProcessedAt) { this.ocrProcessedAt = ocrProcessedAt; }
+
+    public OffsetDateTime getOcrIndexedAt() { return ocrIndexedAt; }
+    public void setOcrIndexedAt(OffsetDateTime ocrIndexedAt) { this.ocrIndexedAt = ocrIndexedAt; }
 }

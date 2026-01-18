@@ -13,14 +13,23 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Value;
+import java.util.Map;
 
 @Configuration
 @EnableRabbit
 public class RabbitConfig {
 
-    @Bean
-    public Queue ocrQueue(@Value("${ocr.queue.name}") String queueName) {
-        return new Queue(queueName, true);
+    @Bean(name = "ocrQueue")
+    public Queue ocrQueue(@Value("${ocr.queue.name}") String name) {
+        return new Queue(name, true, false, false, Map.of(
+                "x-dead-letter-exchange", "",
+                "x-dead-letter-routing-key", name + "_RETRY"
+        ));
+    }
+
+    @Bean(name = "ocrResultQueue")
+    public Queue ocrResultQueue(@Value("${ocr.result.queue.name}") String name) {
+        return new Queue(name, true);
     }
 
     @Bean
