@@ -25,11 +25,6 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Queue indexQueue(@Value("${INDEX_QUEUE_NAME:index-jobs}") String queueName) {
-        return new Queue(queueName, true);
-    }
-
-    @Bean
     public RabbitAdmin amqpAdmin(ConnectionFactory cf) {
         RabbitAdmin admin = new RabbitAdmin(cf);
         admin.setAutoStartup(false); // prevents auto-declare of the Queue bean

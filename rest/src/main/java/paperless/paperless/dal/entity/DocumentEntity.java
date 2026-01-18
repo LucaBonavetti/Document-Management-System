@@ -3,8 +3,6 @@ package paperless.paperless.dal.entity;
 import jakarta.persistence.*;
 
 import java.time.OffsetDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Table(name = "documents")
@@ -25,23 +23,11 @@ public class DocumentEntity {
     @Column(nullable = false)
     private OffsetDateTime uploadedAt;
 
-    @Column(length = 1024)
+    @Column(name = "object_key")
     private String objectKey;
 
-    @Column(length = 2000)
+    @Column(name = "summary", columnDefinition = "TEXT")
     private String summary;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private CategoryEntity category;
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "document_tags",
-            joinColumns = @JoinColumn(name = "document_id"),
-            inverseJoinColumns = @JoinColumn(name = "tag_id")
-    )
-    private Set<TagEntity> tags = new HashSet<>();
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -63,10 +49,4 @@ public class DocumentEntity {
 
     public String getSummary() { return summary; }
     public void setSummary(String summary) { this.summary = summary; }
-
-    public CategoryEntity getCategory() { return category; }
-    public void setCategory(CategoryEntity category) { this.category = category; }
-
-    public Set<TagEntity> getTags() { return tags; }
-    public void setTags(Set<TagEntity> tags) { this.tags = tags; }
 }

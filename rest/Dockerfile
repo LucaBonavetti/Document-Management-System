@@ -1,10 +1,12 @@
 # ==== Builder (cache Maven layers) ====
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
+# Cache dependencies
 COPY pom.xml .
-RUN --mount=type=cache,target=/root/.m2 mvn -q -B dependency:go-offline
+RUN mvn -q -e -DskipTests dependency:go-offline
+# Now copy sources
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -q -DskipTests=true -Dmaven.test.skip=true package
+RUN mvn -q -DskipTests package
 
 # ==== Runtime ====
 FROM eclipse-temurin:17-jre

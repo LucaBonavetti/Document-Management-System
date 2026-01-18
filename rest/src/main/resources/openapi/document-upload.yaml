@@ -75,27 +75,6 @@ paths:
                 $ref: '#/components/schemas/Document'
         '404':
           description: Not found
-  /api/search:
-    get:
-      summary: Search documents
-      operationId: searchDocuments
-      parameters:
-        - in: query
-          name: q
-          required: true
-          schema: { type: string }
-          description: Query string
-        - in: query
-          name: limit
-          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
-      responses:
-        '200':
-          description: Search results
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/Document' }
 components:
   schemas:
     Document:

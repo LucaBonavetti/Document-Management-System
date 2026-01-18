@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 
 public class BlDocument {
     private Long id;
@@ -21,8 +20,7 @@ public class BlDocument {
     @NotNull(message = "uploadedAt must not be null")
     private OffsetDateTime uploadedAt;
 
-    private String category;
-    private List<String> tags;
+    private String summary;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -39,9 +37,6 @@ public class BlDocument {
     public OffsetDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(OffsetDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
 
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
-
-    public List<String> getTags() { return tags; }
-    public void setTags(List<String> tags) { this.tags = tags; }
+    public String getSummary() { return summary; }
+    public void setSummary(String summary) { this.summary = summary; }
 }

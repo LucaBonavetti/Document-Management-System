@@ -11,10 +11,6 @@ const recentTable = document.getElementById('recentTable').querySelector('tbody'
 const refreshBtn = document.getElementById('refreshBtn');
 const limitSel = document.getElementById('limitSel');
 
-const qInput = document.getElementById('qInput');
-const searchBtn = document.getElementById('searchBtn');
-const searchTable = document.getElementById('searchTable').querySelector('tbody');
-
 const toast = document.getElementById('toast');
 
 let selectedFile = null;
@@ -136,34 +132,6 @@ async function loadRecent() {
         showToast('Failed to load recent', false);
     }
 }
-
-searchBtn.addEventListener('click', async () => {
-  const q = qInput.value.trim();
-  if (!q) return;
-  searchTable.innerHTML = '<tr><td colspan="5">Searching…</td></tr>';
-  try {
-    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=20`);
-    if (!res.ok) throw new Error('Search failed');
-    const arr = await res.json();
-    if (!Array.isArray(arr) || arr.length === 0) {
-      searchTable.innerHTML = '<tr><td colspan="5">No matches</td></tr>';
-      return;
-    }
-    searchTable.innerHTML = arr.map(d => `
-      <tr>
-        <td>${d.id}</td>
-        <td>${d.filename}</td>
-        <td>${d.contentType || '-'}</td>
-        <td>${bytesToHuman(d.size || 0)}</td>
-        <td>${new Date(d.uploadedAt).toLocaleString()}</td>
-      </tr>
-    `).join('');
-  } catch (e) {
-    console.error(e);
-    searchTable.innerHTML = '<tr><td colspan="5">Search failed</td></tr>';
-    showToast('Search failed', false);
-  }
-});
 
 refreshBtn.addEventListener('click', loadRecent);
 limitSel.addEventListener('change', loadRecent);
