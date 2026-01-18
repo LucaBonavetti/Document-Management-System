@@ -1,27 +1,25 @@
 package paperless.paperless.search.impl;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.Result;
 import co.elastic.clients.elasticsearch.core.DeleteResponse;
 import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import paperless.paperless.config.ElasticsearchConfig;
 import paperless.paperless.search.SearchIndexService;
 import paperless.paperless.search.dto.IndexedDocument;
+import paperless.paperless.search.dto.SearchHit;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
-/**
- * Elasticsearch implementation of {@link SearchIndexService}.
- *
- * Intentionally mirrors the lecturer demo style:
- *  - Creates the index if missing
- *  - Uses the Elastic Java API Client
- */
 @Component
 @Slf4j
 public class ElasticsearchService implements SearchIndexService {
@@ -82,12 +80,63 @@ public class ElasticsearchService implements SearchIndexService {
             log.warn("Failed to delete document id={} from elasticsearch: {}", id, e.toString());
         }
 
-        if (result == null) {
-            return false;
-        }
+        if (result == null) return false;
+
         if (result.result() != Result.Deleted) {
             log.warn(result.toString());
         }
         return result.result() == Result.Deleted;
+    }
+
+    @Override
+    public List<SearchHit> search(String query, List<String> tags, int limit) throws IOException {
+        int size = Math.max(1, Math.min(limit, 100));
+        boolean hasQuery = query != null && !query.isBlank();
+        boolean hasTags = tags != null && !tags.isEmpty();
+        SearchResponse<IndexedDocument> resp = esClient.search(s -> s
+                        .index(ElasticsearchConfig.DOCUMENTS_INDEX_NAME)
+                        .size(size)
+                        .query(q -> {
+                            // 1) no query and no tags -> match_all
+                            if (!hasQuery && !hasTags) {
+                                return q.matchAll(m -> m);
+                            }
+                            // 2) build bool query
+                            return q.bool(b -> {
+                                if (hasQuery) {
+                                    b.must(m -> m.multiMatch(mm -> mm
+                                            .query(query)
+                                            .fields("content", "filename", "tags")
+                                    ));
+                                } else {
+                                    b.must(m -> m.matchAll(ma -> ma));
+                                }
+                                if (hasTags) {
+                                    List<FieldValue> vals = tags.stream()
+                                            .filter(t -> t != null && !t.isBlank())
+                                            .map(FieldValue::of)
+                                            .toList();
+                                    // dynamic mapping usually gives tags as text with keyword subfield
+                                    b.filter(f -> f.terms(t -> t
+                                            .field("tags.keyword")
+                                            .terms(v -> v.value(vals))
+                                    ));
+                                }
+                                return b;
+                            });
+                        }),
+                IndexedDocument.class
+        );
+        List<SearchHit> hits = new ArrayList<>();
+        for (var h : resp.hits().hits()) {
+            if (h == null || h.id() == null) continue;
+            try {
+                Long id = Long.parseLong(h.id());
+                Double score = h.score() != null ? h.score() : 0.0;
+                hits.add(new SearchHit(id, score));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return hits;
     }
 }
