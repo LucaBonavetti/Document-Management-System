@@ -51,6 +51,9 @@ services:
       SPRING_RABBITMQ_VIRTUAL_HOST: /paperless
 
       OCR_QUEUE_NAME: OCR_QUEUE
+
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,6 +61,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      elasticsearch:
+        condition: service_started
     ports:
       - "8081:8081"
     restart: unless-stopped
@@ -178,6 +183,28 @@ services:
       timeout: 5s
       retries: 5
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.16.0
+    container_name: elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+    volumes:
+      - elasticsearch-data:/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.16.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+
 volumes:
   pgdata:
   minio-data:
+  elasticsearch-data:
