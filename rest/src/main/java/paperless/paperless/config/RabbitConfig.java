@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 public class RabbitConfig {
 
     @Bean
-    public Queue ocrQueue(@Value("${OCR_QUEUE_NAME:ocr-jobs}") String queueName) {
+    public Queue ocrQueue(@Value("${ocr.queue.name}") String queueName) {
         return new Queue(queueName, true);
     }
 
