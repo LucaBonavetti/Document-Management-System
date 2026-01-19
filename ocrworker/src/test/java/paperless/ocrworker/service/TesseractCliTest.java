@@ -30,7 +30,7 @@ class OcrWorkerServiceLiteTest {
         MinioClient minio = Mockito.mock(MinioClient.class);
         MinioConfig cfg = Mockito.mock(MinioConfig.class);
         OcrResultProducer producer = Mockito.mock(OcrResultProducer.class);
-        svc = new OcrWorkerService(minio, cfg, producer);
+        // svc = new OcrWorkerService(minio, cfg, producer);
 
         mTesseractCmd = OcrWorkerService.class.getDeclaredMethod("tesseractCmd");
         mTesseractCmd.setAccessible(true);

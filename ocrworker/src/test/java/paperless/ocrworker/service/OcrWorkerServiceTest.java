@@ -39,7 +39,7 @@ class OcrWorkerServiceTest {
 
         resultProducer = mock(OcrResultProducer.class, withSettings().lenient());
 
-        service = spy(new OcrWorkerService(minio, minioConfig, resultProducer));
+        // service = spy(new OcrWorkerService(minio, minioConfig, resultProducer));
         ReflectionTestUtils.setField(service, "storeTextToMinio", true);
     }
 

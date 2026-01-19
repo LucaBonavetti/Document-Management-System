@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 import paperless.ocrworker.config.MinioConfig;
 import paperless.ocrworker.messaging.OcrResultProducer;
 import paperless.paperless.messaging.OcrJobMessage;
-import paperless.paperless.messaging.OcrResultMessage;
+import paperless.ocrworker.messaging.OcrResultMessage;
 import paperless.paperless.messaging.GenAiJobMessage;
 
 import javax.imageio.ImageIO;
@@ -130,7 +130,7 @@ public class OcrWorkerService {
             // 5) Send message to GenAI queue
             sendGenAiJob(msg.getDocumentId(), textKey);
 
-            // 5) Publish OCR result
+            // 6) Publish OCR result
             resultProducer.send(new OcrResultMessage(msg.getDocumentId(), key, textKey, OffsetDateTime.now()));
 
         } catch (Exception e) {

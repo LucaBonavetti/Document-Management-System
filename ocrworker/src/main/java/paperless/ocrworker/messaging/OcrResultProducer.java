@@ -6,7 +6,7 @@ import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import paperless.paperless.messaging.OcrResultMessage;
+import paperless.ocrworker.messaging.OcrResultMessage;
 
 @Component
 public class OcrResultProducer {

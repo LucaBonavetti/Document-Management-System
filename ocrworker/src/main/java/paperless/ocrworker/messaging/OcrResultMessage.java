@@ -1,4 +1,4 @@
-package paperless.paperless.messaging;
+package paperless.ocrworker.messaging;
 
 import java.time.OffsetDateTime;
 

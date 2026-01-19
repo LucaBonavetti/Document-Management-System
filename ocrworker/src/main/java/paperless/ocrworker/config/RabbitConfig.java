@@ -62,14 +62,6 @@ public class RabbitConfig {
     }
 
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory cf, Jackson2JsonMessageConverter conv) {
-        RabbitTemplate rt = new RabbitTemplate(cf);
-        rt.setMessageConverter(conv);
-        rt.setMandatory(true);
-        return rt;
-    }
-
-    @Bean
     public SimpleRabbitListenerContainerFactory ocrListenerFactory(
             ConnectionFactory cf,
             Jackson2JsonMessageConverter conv) {
@@ -89,6 +81,7 @@ public class RabbitConfig {
     public RabbitTemplate rabbitTemplate(ConnectionFactory cf, Jackson2JsonMessageConverter conv) {
         RabbitTemplate rt = new RabbitTemplate(cf);
         rt.setMessageConverter(conv);
+        rt.setMandatory(true);
         return rt;
     }
 }

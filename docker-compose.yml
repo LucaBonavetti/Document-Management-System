@@ -51,7 +51,7 @@ services:
       SPRING_RABBITMQ_VIRTUAL_HOST: /paperless
 
       OCR_QUEUE_NAME: OCR_QUEUE
-      OCR_RESULT_QUEUE_NAME: ocr-results
+      OCR_RESULT_QUEUE_NAME: OCR_RESULTS
 
       ELASTICSEARCH_HOST: elasticsearch
       ELASTICSEARCH_PORT: 9200
@@ -122,9 +122,9 @@ services:
       SPRING_RABBITMQ_PASSWORD: paperless
       SPRING_RABBITMQ_VIRTUAL_HOST: /paperless
       OCR_QUEUE_NAME: OCR_QUEUE
+      OCR_RESULT_QUEUE_NAME: OCR_RESULTS
 
       GENAI_QUEUE_NAME: GENAI_QUEUE
-      OCR_RESULT_QUEUE_NAME: ocr-results
 
       MINIO_ACCESS_KEY: admin
       MINIO_SECRET_KEY: admin-password
