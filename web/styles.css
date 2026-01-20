@@ -95,6 +95,10 @@ input[type="number"], input[type="text"], select {
     border: 1px solid var(--accent-2);
     border-radius: 8px;
     overflow: auto;
+
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .toast {
@@ -112,3 +116,14 @@ input[type="number"], input[type="text"], select {
 }
 .toast.ok { border-left-color: var(--ok); }
 .toast.err { border-left-color: var(--err); }
+
+.tag-chip{
+    display:inline-flex;
+    align-items:center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--accent-2);
+    background: #0b1220;
+    color: var(--text);
+    font-size: 13px;
+}

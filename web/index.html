@@ -30,6 +30,36 @@
             <button id="getBtn" class="btn">Get</button>
         </div>
         <pre id="getResult" class="code"></pre>
+
+        <div class="muted" style="margin-top: 10px;">Tags</div>
+
+        <div class="row" style="margin-top: 6px;">
+            <input id="tagInput" type="text" placeholder="Add tag (e.g., invoice-2026)" />
+            <button id="addTagBtn" class="btn">Add</button>
+        </div>
+
+        <div id="tagsContainer" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;"></div>
+    </section>
+
+    <section class="card">
+        <h2>Search Documents</h2>
+        <div class="row">
+            <input id="searchQueryInput" type="text" placeholder="Search text (e.g., Hello)…" />
+        </div>
+
+        <table class="table" id="searchTable">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Filename</th>
+                <th>Score</th>
+                <th>Uploaded</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr><td colspan="4" class="muted">No search yet</td></tr>
+            </tbody>
+        </table>
     </section>
 
     <section class="card">
