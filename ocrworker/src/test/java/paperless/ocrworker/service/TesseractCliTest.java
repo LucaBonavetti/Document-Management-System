@@ -5,6 +5,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import paperless.ocrworker.config.MinioConfig;
 import paperless.ocrworker.messaging.OcrResultProducer;
 
@@ -26,11 +27,12 @@ class OcrWorkerServiceLiteTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        // real service with mocks (won't call them in these tests)
         MinioClient minio = Mockito.mock(MinioClient.class);
         MinioConfig cfg = Mockito.mock(MinioConfig.class);
+        RabbitTemplate rabbitTemplate = Mockito.mock(RabbitTemplate.class);
         OcrResultProducer producer = Mockito.mock(OcrResultProducer.class);
-        // svc = new OcrWorkerService(minio, cfg, producer);
+
+        svc = new OcrWorkerService(minio, cfg, rabbitTemplate, producer);
 
         mTesseractCmd = OcrWorkerService.class.getDeclaredMethod("tesseractCmd");
         mTesseractCmd.setAccessible(true);
@@ -59,10 +61,10 @@ class OcrWorkerServiceLiteTest {
 
     @Test
     void getExt_and_isPdf_behaveAsExpected() throws Exception {
-        assertEquals(".pdf", mGetExt.invoke(svc, "doc.pdf"));
-        assertEquals(".bin", mGetExt.invoke(svc, (Object) null));
-        assertEquals(".noext", mGetExt.invoke(svc, "name.noext"));
-        assertEquals(".bin", mGetExt.invoke(svc, "no-dot"));
+        assertEquals(".pdf", (String) mGetExt.invoke(svc, "doc.pdf"));
+        assertEquals(".bin", (String) mGetExt.invoke(svc, (Object) null));
+        assertEquals(".noext", (String) mGetExt.invoke(svc, "name.noext"));
+        assertEquals(".bin", (String) mGetExt.invoke(svc, "no-dot"));
 
         assertTrue((Boolean) mIsPdf.invoke(svc, ".PDF"));   // case-insensitive
         assertFalse((Boolean) mIsPdf.invoke(svc, ".png"));
@@ -70,7 +72,6 @@ class OcrWorkerServiceLiteTest {
 
     @Test
     void toGrayscale_preservesSize_andTypeIsGray() throws Exception {
-        // make a tiny RGB image
         BufferedImage rgb = new BufferedImage(40, 20, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = rgb.createGraphics();
         try {
