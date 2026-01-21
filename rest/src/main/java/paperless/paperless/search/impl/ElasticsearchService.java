@@ -116,7 +116,6 @@ public class ElasticsearchService implements SearchIndexService {
                                             .filter(t -> t != null && !t.isBlank())
                                             .map(FieldValue::of)
                                             .toList();
-                                    // dynamic mapping usually gives tags as text with keyword subfield
                                     b.filter(f -> f.terms(t -> t
                                             .field("tags.keyword")
                                             .terms(v -> v.value(vals))

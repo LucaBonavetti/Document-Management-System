@@ -90,7 +90,6 @@ public class DocumentIndexingService {
             doc.setOcrIndexedAt(OffsetDateTime.now());
             documentRepository.save(doc);
         } catch (Exception ignored) {
-            // If your current DocumentEntity doesn't yet have OCR fields, this keeps the app working.
         }
     }
 
@@ -106,7 +105,6 @@ public class DocumentIndexingService {
         try {
             textKey = doc.getOcrTextKey();
         } catch (Exception e) {
-            // If the field doesn't exist in your current DocumentEntity, we can't reindex by tags.
             return;
         }
 

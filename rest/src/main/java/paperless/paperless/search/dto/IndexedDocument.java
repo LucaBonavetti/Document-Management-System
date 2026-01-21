@@ -23,8 +23,5 @@ public class IndexedDocument {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private OffsetDateTime uploadedAt;
 
-    /**
-     * Optional metadata (will be filled in the Tags use-case step).
-     */
     private List<String> tags = new ArrayList<>();
 }
